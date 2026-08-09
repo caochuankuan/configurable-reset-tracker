@@ -6,24 +6,24 @@ self.addEventListener("push", (event) => {
     payload = {};
   }
 
-  const kind = payload.kind === "watch" ? "watch" : "reset";
+  const kind = payload.kind === "featured" ? "featured" : "post";
   const title = payload.title ||
-    (kind === "watch" ? "⚠️ Codex 可能在 24 小时内重置" : "✅ Codex 重置已确认");
+    (kind === "featured" ? "📌 本周精选文章" : "✍️ 新文章已发布");
   event.waitUntil(self.registration.showNotification(title, {
-    body: payload.body || (kind === "watch"
-      ? "这是预测，尚未确认重置。"
-      : "已确认 Codex 使用额度完成重置。"),
-    tag: kind === "watch" ? "codex-reset-watch" : "codex-reset-confirmed",
+    body: payload.body || (kind === "featured"
+      ? "本周值得阅读的文章已经选出。"
+      : "博客刚刚发布了一篇新文章。"),
+    tag: kind === "featured" ? "blog-featured" : "blog-post",
     data: {
       kind,
-      url: payload.url || "https://codex-resets.com/",
+      url: payload.url || "/",
     },
   }));
 });
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "https://codex-resets.com/";
+  const url = event.notification.data?.url || "/";
 
   event.waitUntil((async () => {
     const windows = await clients.matchAll({ type: "window", includeUncontrolled: true });

@@ -1,24 +1,18 @@
 import { timingSafeEqual } from "node:crypto";
 
-type ResetEvent = {
-  tweet_id: string;
-  tweet_url: string;
-  text: string;
-  announced_at: string;
+type BlogPost = {
+  id: string;
+  title: string;
+  summary: string;
+  content: string[];
+  published_at: string;
 };
 
-type ResetWatch = {
-  level: "weak" | "medium" | "strong";
-  tweet_id: string;
-  tweet_url: string;
-  text: string;
-  observed_at: string;
-  expires_at: string;
-  window_hours: number;
-  reset_chance_24h: number;
-  context_tweet_id?: string;
-  context_tweet_url?: string;
-  context_text?: string;
+type FeaturedPost = {
+  post_id: string;
+  score: number;
+  label: string;
+  reason: string;
 };
 
 type ResetRequestSnapshot = {
@@ -27,16 +21,18 @@ type ResetRequestSnapshot = {
   count: number;
 };
 
-type ResetData = {
-  events: ResetEvent[];
+type BlogData = {
+  site: { title: string; description: string };
+  posts: BlogPost[];
   stats: {
     total: number;
-    last_reset_at: string;
+    last_published_at: string;
     days_since_last: number;
     avg_interval_days: number;
   };
-  watch?: ResetWatch | null;
-  reset_requests?: ResetRequestSnapshot | null;
+  featured?: FeaturedPost | null;
+  reactions?: ResetRequestSnapshot | null;
+  ui: Record<string, string>;
 };
 
 type ContentRow = { content_json: string; version: number; updated_at: string };
@@ -57,15 +53,20 @@ function validDate(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
-function validateContent(value: unknown): value is ResetData {
+function validateContent(value: unknown): value is BlogData {
   if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<ResetData>;
-  if (!Array.isArray(candidate.events) || candidate.events.length > 500) return false;
-  if (!candidate.stats || !Number.isInteger(candidate.stats.total) || !validDate(candidate.stats.last_reset_at)) return false;
-  return candidate.events.every((event) =>
-    event && typeof event.tweet_id === "string" && event.tweet_id.length <= 40 &&
-    typeof event.tweet_url === "string" && event.tweet_url.length <= 500 &&
-    typeof event.text === "string" && event.text.length <= 10_000 && validDate(event.announced_at)
+  const candidate = value as Partial<BlogData>;
+  if (!candidate.site || typeof candidate.site.title !== "string" || typeof candidate.site.description !== "string") return false;
+  if (!candidate.ui || typeof candidate.ui !== "object") return false;
+  if (!Array.isArray(candidate.posts) || candidate.posts.length > 500) return false;
+  if (!candidate.stats || !Number.isInteger(candidate.stats.total) || !validDate(candidate.stats.last_published_at)) return false;
+  return candidate.posts.every((post) =>
+    post && typeof post.id === "string" && post.id.length <= 100 &&
+    typeof post.title === "string" && post.title.length <= 200 &&
+    typeof post.summary === "string" && post.summary.length <= 1_000 &&
+    Array.isArray(post.content) && post.content.length <= 100 &&
+    post.content.every((paragraph) => typeof paragraph === "string" && paragraph.length <= 10_000) &&
+    validDate(post.published_at)
   );
 }
 
@@ -90,7 +91,7 @@ async function readContent(env: Env): Promise<ContentRow | null> {
   ).first<ContentRow>();
 }
 
-async function defaultContent(request: Request, env: Env): Promise<ResetData> {
+async function defaultContent(request: Request, env: Env): Promise<BlogData> {
   const url = new URL("/content.json", request.url);
   const response = await env.ASSETS.fetch(url);
   if (!response.ok) throw new Error("默认内容资源不可用。");
@@ -99,7 +100,7 @@ async function defaultContent(request: Request, env: Env): Promise<ResetData> {
   return content;
 }
 
-async function resolvedContent(request: Request, env: Env): Promise<{ content: ResetData; row: ContentRow | null }> {
+async function resolvedContent(request: Request, env: Env): Promise<{ content: BlogData; row: ContentRow | null }> {
   const row = await readContent(env);
   if (row) {
     try {
@@ -115,7 +116,7 @@ async function resolvedContent(request: Request, env: Env): Promise<{ content: R
 async function handlePublicContent(request: Request, env: Env): Promise<Response> {
   const { content, row } = await resolvedContent(request, env);
   const snapshot = await readResetRequests(env);
-  return json({ ...content, reset_requests: snapshot ?? content.reset_requests ?? null }, {
+  return json({ ...content, reactions: snapshot ?? content.reactions ?? null }, {
     headers: {
       "cache-control": "public, max-age=60, stale-while-revalidate=300",
       etag: `W/\"content-${row?.version ?? 0}\"`,
@@ -149,7 +150,7 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   if (!body || typeof body !== "object") return json({ error: "请求无效。" }, { status: 400 });
   const candidate = body as { content?: unknown; expectedVersion?: unknown };
   if (!Number.isInteger(candidate.expectedVersion) || !validateContent(candidate.content)) {
-    return json({ error: "需要有效的 Codex 重置追踪 JSON 和 expectedVersion。" }, { status: 422 });
+    return json({ error: "需要有效的博客 JSON 和 expectedVersion。" }, { status: 422 });
   }
 
   const result = await env.DB.prepare(
@@ -192,8 +193,8 @@ async function handleResetRequests(request: Request, env: Env): Promise<Response
 
 async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
-  if ((pathname === "/api/resets" || pathname === "/api/content") && request.method === "GET") return handlePublicContent(request, env);
-  if (pathname === "/api/reset-requests") return handleResetRequests(request, env);
+  if ((pathname === "/api/posts" || pathname === "/api/content") && request.method === "GET") return handlePublicContent(request, env);
+  if (pathname === "/api/reactions") return handleResetRequests(request, env);
   if (pathname === "/api/admin/content" && request.method === "GET") return handleAdminRead(request, env);
   if (pathname === "/api/admin/content" && request.method === "PUT") return handleAdminWrite(request, env);
   if (pathname.startsWith("/api/")) return json({ error: "接口不存在" }, { status: 404 });

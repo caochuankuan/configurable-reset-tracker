@@ -1,13 +1,13 @@
-# Codex 重置追踪 — 无框架复刻版
+# 代码与思考 — JSON 驱动博客
 
-对 `codex-resets.com` 当前页面结构、内容模型和视觉样式的复刻，包含两种无框架实现：
+沿用 `codex-resets.com` 的视觉样式和页面布局，改造成一个完全中文的无框架博客，包含两种实现：
 
 - `static-json/`：纯 HTML + CSS + JavaScript + JSON，适合任意静态托管。
 - `worker-d1/`：Cloudflare Worker + D1，带 `/admin/` 配置后台。
 
-两套代码互相独立，不需要构建前端资源。页面文案和 41 条事件内容均为中文，包含 26 周热力图、重置观察、统计卡片和完整时间线；原页面的两个广告位已移除。
+两套代码互相独立，不需要构建前端资源。博客内容由 JSON 配置，包含精选文章、26 周更新足迹、统计卡片和文章归档；点击“展开”会在弹窗中阅读完整正文。
 
-完整中文配置示例位于 [`examples/content.zh-CN.json`](./examples/content.zh-CN.json)，两套代码默认使用同一份中文内容。
+完整中文博客配置位于 [`examples/content.zh-CN.json`](./examples/content.zh-CN.json)，两套代码默认使用同一份内容。
 
 ## 1. 静态 JSON 版本
 

@@ -18,7 +18,7 @@ async function loadData() {
     const res = await fetch("./content.json", { headers: { accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (!json || !Array.isArray(json.events)) throw new Error("响应格式不正确");
+    if (!json || !Array.isArray(json.posts)) throw new Error("响应格式不正确");
     return { ...json, isDemo: false };
   } catch (err) {
     console.warn("[codex-resets] live data unavailable, falling back to demo data:", err);
@@ -88,11 +88,11 @@ function enhanceTimes(scope) {
 // Deadpan lines for empty days, picked deterministically per date so a cell
 // tells the same joke every time you hover it.
 const QUIET_DAY_LINES = [
-  "没有重置，我们坚持住了。",
-  "没有重置，他当时很忙。",
-  "没有重置，动态很安静。",
-  "没有重置，但我们还是刷新了。",
-  "没有重置，这是磨炼意志的一天。",
+  "这天没有更新，可能在认真写代码。",
+  "没有新文章，但事情仍在发生。",
+  "这天很安静，灵感正在后台运行。",
+  "没有更新，也许是在认真生活。",
+  "空白的一天，也属于创作过程。",
 ];
 
 function quietLine(dateStr) {
@@ -124,7 +124,7 @@ function enhanceGraph(scope) {
     const count = Number(cell.getAttribute("data-count") || "0");
     const date = cell.getAttribute("data-date");
     const snippet = cell.getAttribute("data-snippet") || "";
-    const countLabel = count === 0 ? quietLine(date) : count > 1 ? `一天内重置 ${count} 次，盛宴。` : "";
+    const countLabel = count === 0 ? quietLine(date) : count > 1 ? `这一天发布了 ${count} 篇文章。` : "";
     tooltip.innerHTML = `<strong>${dateLabel(date)}</strong>（UTC）${countLabel ? `<br>${countLabel}` : ""}${snippet ? `<br><span class="cg-tooltip-snippet">${snippet}${snippet.length >= 120 ? "…" : ""}</span>` : ""}`;
     tooltip.hidden = false;
 
@@ -157,21 +157,40 @@ function enhanceGraph(scope) {
 }
 
 // ---------------------------------------------------------------------------
-// Reset watch expiry
+// Post dialog
 // ---------------------------------------------------------------------------
-function enhanceResetWatch(scope) {
-  const watch = scope.querySelector('[data-role="reset-watch"]');
-  if (!watch) return;
+function enhancePostDialog(scope, posts) {
+  const dialog = scope.querySelector('[data-role="post-dialog"]');
+  const close = scope.querySelector('[data-role="post-dialog-close"]');
+  const title = scope.querySelector('[data-role="post-dialog-title"]');
+  const meta = scope.querySelector('[data-role="post-dialog-meta"]');
+  const body = scope.querySelector('[data-role="post-dialog-body"]');
+  if (!dialog || !close || !title || !meta || !body) return;
 
-  const expiresAt = Date.parse(watch.getAttribute("data-expires-at") || "");
-  if (Number.isNaN(expiresAt)) return;
-  const remaining = expiresAt - Date.now();
-  if (remaining <= 0) {
-    watch.remove();
-    return;
-  }
+  const byId = new Map(posts.map((post) => [post.id, post]));
+  let opener = null;
 
-  setTimeout(() => watch.remove(), Math.min(remaining, 2_147_483_647));
+  scope.addEventListener("click", (event) => {
+    const button = event.target.closest?.('[data-role="post-open"]');
+    if (!button) return;
+    const post = byId.get(button.dataset.postId);
+    if (!post) return;
+    opener = button;
+    title.textContent = post.title;
+    meta.textContent = formatAbsolute(Date.parse(post.published_at));
+    body.replaceChildren(...post.content.map((paragraph) => {
+      const element = document.createElement("p");
+      element.textContent = paragraph;
+      return element;
+    }));
+    dialog.showModal();
+  });
+
+  close.addEventListener("click", () => dialog.close());
+  dialog.addEventListener("click", (event) => {
+    if (event.target === dialog) dialog.close();
+  });
+  dialog.addEventListener("close", () => opener?.focus());
 }
 
 // ---------------------------------------------------------------------------
@@ -224,8 +243,8 @@ async function enhancePushControl(scope) {
     toggle.setAttribute("aria-pressed", String(enabled));
     label.textContent = enabled ? "浏览器已开启" : "浏览器";
     toggle.title = enabled
-      ? "停止接收 Codex 重置的浏览器通知"
-      : "Codex 重置时接收浏览器通知";
+      ? "停止接收新文章的浏览器通知"
+      : "新文章发布时接收浏览器通知";
   }
 
   try {
@@ -277,7 +296,7 @@ async function enhancePushControl(scope) {
       subscription = newSubscription;
       reflectState();
       trackEvent("Push notifications enabled");
-      showHint("已开启，下次重置会第一时间通知你。", 3000);
+      showHint("已开启，新文章发布时会第一时间通知你。", 3000);
     } catch (error) {
       console.warn("[codex-resets] notification subscription failed:", error);
       showHint("开启失败，请重试。");
@@ -366,7 +385,7 @@ async function enhanceEmailControl(scope) {
       showSettledState(
         "confirmed",
         "邮件已开启",
-        "订阅成功，下次确认重置后会发送到这个邮箱。",
+        "订阅成功，新文章发布后会发送到这个邮箱。",
       );
     } else if (state === "invalid") {
       setOpen(true);
@@ -477,7 +496,7 @@ function enhanceResetPlea(scope) {
 
     count.setAttribute(
       "aria-label",
-      value === null ? "暂时无法获取重置请求数" : `上次重置后已有 ${value} 次请求`,
+      value === null ? "暂时无法获取催更次数" : `累计收到 ${value} 次催更`,
     );
   }
 
@@ -533,7 +552,7 @@ function enhanceResetPlea(scope) {
   function launchBurst() {
     if (reducedMotion?.matches) return;
     const burst = document.createElement("span");
-    const messages = ["+1", "🙏", "求", "🔄", "avatar", "avatar"];
+    const messages = ["+1", "✍️", "更", "📚", "avatar", "avatar"];
     const message = messages[Math.floor(Math.random() * messages.length)];
     const isAvatar = message === "avatar";
     burst.className = "reset-plea-burst";
@@ -589,7 +608,7 @@ function enhanceResetPlea(scope) {
 
   async function refreshSnapshot() {
     try {
-      const response = await fetch("/api/reset-requests", {
+      const response = await fetch("/api/reactions", {
         headers: { accept: "application/json" },
         cache: "no-store",
       });
@@ -627,7 +646,7 @@ function enhanceResetPlea(scope) {
     clearTimeout(reconnectTimer);
     reconnectTimer = undefined;
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    socket = new WebSocket(`${protocol}//${location.host}/api/reset-requests/live`);
+    socket = new WebSocket(`${protocol}//${location.host}/api/reactions/live`);
     socket.addEventListener("open", () => {
       reconnectAttempt = 0;
       stopPolling();
@@ -679,7 +698,7 @@ function enhanceResetPlea(scope) {
     if (n < 1 || !requestId) return;
 
     try {
-      const response = await fetch("/api/reset-requests", {
+      const response = await fetch("/api/reactions", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({ request_id: requestId, n }),
@@ -757,8 +776,8 @@ async function boot() {
     try {
       globalThis.codexResetsTheme?.sync(root);
       enhanceTimes(root);
-      enhanceResetWatch(root);
       enhanceGraph(root);
+      enhancePostDialog(root, []);
       enhanceResetPlea(root);
       enhanceTelegramLink(root);
       await enhanceEmailControl(root);
@@ -774,8 +793,8 @@ async function boot() {
   try {
     globalThis.codexResetsTheme?.sync(root);
     enhanceTimes(root);
-    enhanceResetWatch(root);
     enhanceGraph(root);
+    enhancePostDialog(root, data.posts);
     enhanceResetPlea(root);
     enhanceTelegramLink(root);
     await enhanceEmailControl(root);
