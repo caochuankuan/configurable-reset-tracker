@@ -87,10 +87,26 @@ async function secretMatches(provided: string, expected: string): Promise<boolea
   return timingSafeEqual(new Uint8Array(providedHash), new Uint8Array(expectedHash));
 }
 
+function decodeBasic(value: string): { username: string; password: string } | null {
+  if (!value.startsWith("Basic ")) return null;
+  try {
+    const decoded = atob(value.slice(6));
+    const separator = decoded.indexOf(":");
+    if (separator < 0) return null;
+    return { username: decoded.slice(0, separator), password: decoded.slice(separator + 1) };
+  } catch {
+    return null;
+  }
+}
+
 async function authorized(request: Request, env: Env): Promise<boolean> {
-  const authorization = request.headers.get("authorization") ?? "";
-  const token = authorization.startsWith("Bearer ") ? authorization.slice(7) : "";
-  return secretMatches(token, env.ADMIN_TOKEN);
+  const credentials = decodeBasic(request.headers.get("authorization") ?? "");
+  if (!credentials) return false;
+  const [usernameMatches, passwordMatches] = await Promise.all([
+    secretMatches(credentials.username, env.ADMIN_USERNAME),
+    secretMatches(credentials.password, env.ADMIN_PASSWORD),
+  ]);
+  return usernameMatches && passwordMatches;
 }
 
 async function readContent(env: Env): Promise<ContentRow | null> {
@@ -134,7 +150,7 @@ async function handlePublicContent(request: Request, env: Env): Promise<Response
 
 async function handleAdminRead(request: Request, env: Env): Promise<Response> {
   if (!await authorized(request, env)) {
-    return json({ error: "管理员令牌不正确。" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
+    return json({ error: "账号或密码不正确。" }, { status: 401, headers: { "www-authenticate": 'Basic realm="内容管理"' } });
   }
   const { content, row } = await resolvedContent(request, env);
   return json({ content, version: row?.version ?? 0, updatedAt: row?.updated_at ?? null }, {
@@ -144,7 +160,7 @@ async function handleAdminRead(request: Request, env: Env): Promise<Response> {
 
 async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   if (!await authorized(request, env)) {
-    return json({ error: "管理员令牌不正确。" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
+    return json({ error: "账号或密码不正确。" }, { status: 401, headers: { "www-authenticate": 'Basic realm="内容管理"' } });
   }
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > 512_000) return json({ error: "请求内容过大。" }, { status: 413 });
