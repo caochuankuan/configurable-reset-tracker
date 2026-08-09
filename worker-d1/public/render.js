@@ -342,7 +342,7 @@ export function renderContributionGraph(posts, ui) {
 // ---------------------------------------------------------------------------
 // Post archive
 // ---------------------------------------------------------------------------
-const AVATAR_URL = "/thsottiaux-avatar.jpg";
+const AVATAR_URL = "/blog-avatar.jpg";
 const LOG_PREVIEW_COUNT = 3;
 
 function renderLogItems(posts, ui) {
@@ -425,7 +425,7 @@ export function renderPage(data) {
 <div class="page">
   <header class="masthead">
     <div class="masthead-brand">
-      <img class="masthead-avatar" src="/thsottiaux-avatar.jpg" alt="" aria-hidden="true" width="44" height="44" />
+      <img class="masthead-avatar" src="/blog-avatar.jpg" alt="" aria-hidden="true" width="44" height="44" />
       <div class="masthead-copy">
         <div class="masthead-title-row">
           <h1 class="masthead-title">${escapeHtml(site.title)}</h1>

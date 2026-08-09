@@ -560,7 +560,7 @@ function enhanceResetPlea(scope) {
       const avatar = document.createElement("img");
       burst.classList.add("reset-plea-burst--avatar");
       avatar.className = "reset-plea-burst-avatar";
-      avatar.src = "/thsottiaux-avatar.jpg";
+      avatar.src = "/blog-avatar.jpg";
       avatar.alt = "";
       avatar.decoding = "async";
       avatar.draggable = false;
