@@ -1742,6 +1742,7 @@ a:focus-visible {
   font-size: 11px;
   color: var(--ink-3);
   align-self: start;
+  white-space: nowrap;
 }
 
 .cg-cell {
