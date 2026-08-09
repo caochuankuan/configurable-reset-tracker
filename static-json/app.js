@@ -248,7 +248,7 @@ async function enhancePushControl(scope) {
   }
 
   try {
-    const registration = await navigator.serviceWorker.getRegistration("/");
+    const registration = await navigator.serviceWorker.getRegistration("./");
     subscription = registration ? await registration.pushManager.getSubscription() : null;
     reflectState();
   } catch {
@@ -281,7 +281,7 @@ async function enhancePushControl(scope) {
         return;
       }
 
-      await navigator.serviceWorker.register("/sw.js");
+      await navigator.serviceWorker.register("./sw.js");
       const registration = await navigator.serviceWorker.ready;
       const newSubscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
@@ -560,7 +560,7 @@ function enhanceResetPlea(scope) {
       const avatar = document.createElement("img");
       burst.classList.add("reset-plea-burst--avatar");
       avatar.className = "reset-plea-burst-avatar";
-      avatar.src = "/blog-avatar.jpg";
+      avatar.src = "./blog-avatar.jpg";
       avatar.alt = "";
       avatar.decoding = "async";
       avatar.draggable = false;
