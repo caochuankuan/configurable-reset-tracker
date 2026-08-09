@@ -1,6 +1,6 @@
 # Cloudflare Worker + D1
 
-无前端框架的状态页。前台通过 `/api/content` 读取 D1，后台位于 `/admin/`，使用 `ADMIN_TOKEN` Bearer Token 鉴权。
+无前端框架的 Codex Resets 复刻。前台通过 `/api/resets` 读取 D1，后台位于 `/admin/`，使用 `ADMIN_TOKEN` Bearer Token 鉴权。
 
 ## 本地开发
 
@@ -42,7 +42,10 @@ npm run dev
 
 ## API
 
-- `GET /api/content`：公开内容，缓存 60 秒。
+- `GET /api/resets`：公开的事件、统计、Reset Watch 和 beg 计数，缓存 60 秒。
+- `GET /api/reset-requests`：当前 beg 计数。
+- `POST /api/reset-requests`：增加 beg 计数。
+- `GET /api/sponsors`：赞助位展示配置。
 - `GET /api/admin/content`：读取内容和版本，需要 `Authorization: Bearer <ADMIN_TOKEN>`。
 - `PUT /api/admin/content`：校验并更新内容，需要携带 `content` 和 `expectedVersion`。
 

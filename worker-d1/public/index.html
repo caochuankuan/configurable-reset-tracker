@@ -1,17 +1,24 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en" data-theme-scope="site">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="color-scheme" content="light dark">
-  <meta name="description" content="D1-driven reset status page">
-  <title>Loading…</title>
+  <meta name="theme-color" content="#fff4dd">
+  <title>Codex Resets</title>
+  <meta name="description" content="Tracking when OpenAI's Codex usage limits get reset, based on @thsottiaux's announcements on X.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Codex Resets">
+  <meta property="og:title" content="Codex Resets — OpenAI Codex Usage Limit Reset Tracker">
+  <meta property="og:description" content="Tracking when OpenAI's Codex usage limits get reset, based on @thsottiaux's announcements on X.">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/Baloo2-Bold.woff2" crossorigin>
+  <link rel="preload" as="font" type="font/woff2" href="/fonts/Baloo2-ExtraBold.woff2" crossorigin>
+  <script src="/theme.js"></script>
   <link rel="stylesheet" href="/styles.css">
-  <script type="module" src="/app.js"></script>
+  <link rel="icon" href="/thsottiaux-avatar.jpg" type="image/jpeg">
 </head>
 <body>
-  <div id="app" class="shell" aria-live="polite"><p class="loading">Loading configuration…</p></div>
-  <noscript>This page requires JavaScript.</noscript>
+  <div id="app"></div>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
-

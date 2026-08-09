@@ -1,16 +1,46 @@
-type ContentRow = {
-  content_json: string;
-  version: number;
-  updated_at: string;
+import { timingSafeEqual } from "node:crypto";
+
+type ResetEvent = {
+  tweet_id: string;
+  tweet_url: string;
+  text: string;
+  announced_at: string;
 };
 
-type ContentDocument = {
-  site: { name: string; eyebrow?: string; description?: string; theme?: string };
-  hero: { label?: string; timestamp: string; message?: string; sourceLabel?: string; sourceUrl?: string };
-  stats: Array<{ label: string; value: string; tone?: string }>;
-  updates: Array<{ id: string; timestamp: string; title: string; text: string; url?: string }>;
-  footer?: { note?: string; credit?: string };
+type ResetWatch = {
+  level: "weak" | "medium" | "strong";
+  tweet_id: string;
+  tweet_url: string;
+  text: string;
+  observed_at: string;
+  expires_at: string;
+  window_hours: number;
+  reset_chance_24h: number;
+  context_tweet_id?: string;
+  context_tweet_url?: string;
+  context_text?: string;
 };
+
+type ResetRequestSnapshot = {
+  cycle_id: string;
+  since: string;
+  count: number;
+};
+
+type ResetData = {
+  events: ResetEvent[];
+  stats: {
+    total: number;
+    last_reset_at: string;
+    days_since_last: number;
+    avg_interval_days: number;
+  };
+  watch?: ResetWatch | null;
+  reset_requests?: ResetRequestSnapshot | null;
+};
+
+type ContentRow = { content_json: string; version: number; updated_at: string };
+type ResetRequestRow = { cycle_id: string; since: string; count: number };
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -23,18 +53,19 @@ function json(data: unknown, init: ResponseInit = {}): Response {
   return new Response(JSON.stringify(data), { ...init, headers });
 }
 
-function validateContent(value: unknown): value is ContentDocument {
+function validDate(value: unknown): value is string {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+
+function validateContent(value: unknown): value is ResetData {
   if (!value || typeof value !== "object") return false;
-  const candidate = value as Partial<ContentDocument>;
-  if (!candidate.site || typeof candidate.site.name !== "string" || candidate.site.name.length > 120) return false;
-  if (!candidate.hero || typeof candidate.hero.timestamp !== "string" || Number.isNaN(Date.parse(candidate.hero.timestamp))) return false;
-  if (!Array.isArray(candidate.stats) || candidate.stats.length > 12) return false;
-  if (!Array.isArray(candidate.updates) || candidate.updates.length > 200) return false;
-  return candidate.stats.every((item) =>
-    item && typeof item.label === "string" && item.label.length <= 80 && typeof item.value === "string" && item.value.length <= 40
-  ) && candidate.updates.every((item) =>
-    item && typeof item.id === "string" && item.id.length <= 100 && typeof item.title === "string" && item.title.length <= 160 &&
-    typeof item.text === "string" && item.text.length <= 4_000 && typeof item.timestamp === "string" && !Number.isNaN(Date.parse(item.timestamp))
+  const candidate = value as Partial<ResetData>;
+  if (!Array.isArray(candidate.events) || candidate.events.length > 500) return false;
+  if (!candidate.stats || !Number.isInteger(candidate.stats.total) || !validDate(candidate.stats.last_reset_at)) return false;
+  return candidate.events.every((event) =>
+    event && typeof event.tweet_id === "string" && event.tweet_id.length <= 40 &&
+    typeof event.tweet_url === "string" && event.tweet_url.length <= 500 &&
+    typeof event.text === "string" && event.text.length <= 10_000 && validDate(event.announced_at)
   );
 }
 
@@ -59,13 +90,35 @@ async function readContent(env: Env): Promise<ContentRow | null> {
   ).first<ContentRow>();
 }
 
-async function handlePublicContent(env: Env): Promise<Response> {
+async function defaultContent(request: Request, env: Env): Promise<ResetData> {
+  const url = new URL("/content.json", request.url);
+  const response = await env.ASSETS.fetch(url);
+  if (!response.ok) throw new Error("Default content asset is unavailable.");
+  const content: unknown = await response.json();
+  if (!validateContent(content)) throw new Error("Default content asset is invalid.");
+  return content;
+}
+
+async function resolvedContent(request: Request, env: Env): Promise<{ content: ResetData; row: ContentRow | null }> {
   const row = await readContent(env);
-  if (!row) return json({ error: "Content has not been initialized." }, { status: 503 });
-  return json(JSON.parse(row.content_json), {
+  if (row) {
+    try {
+      const content: unknown = JSON.parse(row.content_json);
+      if (validateContent(content)) return { content, row };
+    } catch {
+      // The bundled configuration below remains available if an edit was invalid.
+    }
+  }
+  return { content: await defaultContent(request, env), row };
+}
+
+async function handlePublicContent(request: Request, env: Env): Promise<Response> {
+  const { content, row } = await resolvedContent(request, env);
+  const snapshot = await readResetRequests(env);
+  return json({ ...content, reset_requests: snapshot ?? content.reset_requests ?? null }, {
     headers: {
       "cache-control": "public, max-age=60, stale-while-revalidate=300",
-      etag: `W/\"content-${row.version}\"`,
+      etag: `W/\"content-${row?.version ?? 0}\"`,
     },
   });
 }
@@ -74,9 +127,8 @@ async function handleAdminRead(request: Request, env: Env): Promise<Response> {
   if (!await authorized(request, env)) {
     return json({ error: "Unauthorized" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
   }
-  const row = await readContent(env);
-  if (!row) return json({ error: "Content has not been initialized." }, { status: 503 });
-  return json({ content: JSON.parse(row.content_json), version: row.version, updatedAt: row.updated_at }, {
+  const { content, row } = await resolvedContent(request, env);
+  return json({ content, version: row?.version ?? 0, updatedAt: row?.updated_at ?? null }, {
     headers: { "cache-control": "no-store" },
   });
 }
@@ -86,7 +138,7 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
     return json({ error: "Unauthorized" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
   }
   const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 256_000) return json({ error: "Request body is too large." }, { status: 413 });
+  if (length > 512_000) return json({ error: "Request body is too large." }, { status: 413 });
 
   let body: unknown;
   try {
@@ -97,7 +149,7 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   if (!body || typeof body !== "object") return json({ error: "Invalid request." }, { status: 400 });
   const candidate = body as { content?: unknown; expectedVersion?: unknown };
   if (!Number.isInteger(candidate.expectedVersion) || !validateContent(candidate.content)) {
-    return json({ error: "Invalid content or expectedVersion." }, { status: 422 });
+    return json({ error: "Expected Codex Resets JSON and a valid expectedVersion." }, { status: 422 });
   }
 
   const result = await env.DB.prepare(
@@ -105,7 +157,6 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
      SET content_json = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP
      WHERE id = 1 AND version = ?`,
   ).bind(JSON.stringify(candidate.content), candidate.expectedVersion).run();
-
   if (result.meta.changes !== 1) {
     return json({ error: "Content changed since it was loaded. Reload and try again." }, { status: 409 });
   }
@@ -115,14 +166,40 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   });
 }
 
+async function readResetRequests(env: Env): Promise<ResetRequestSnapshot | null> {
+  return env.DB.prepare(
+    "SELECT cycle_id, since, count FROM reset_request_state WHERE id = 1",
+  ).first<ResetRequestRow>();
+}
+
+async function handleResetRequests(request: Request, env: Env): Promise<Response> {
+  if (request.method === "GET") {
+    const snapshot = await readResetRequests(env);
+    return snapshot ? json(snapshot, { headers: { "cache-control": "no-store" } }) : json({ error: "Not initialized" }, { status: 503 });
+  }
+  if (request.method !== "POST") return json({ error: "Method not allowed" }, { status: 405, headers: { allow: "GET, POST" } });
+  let body: unknown;
+  try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, { status: 400 }); }
+  const input = body as { n?: unknown; request_id?: unknown };
+  const increment = Number(input?.n);
+  if (!Number.isInteger(increment) || increment < 1 || increment > 25) return json({ error: "n must be an integer from 1 to 25" }, { status: 422 });
+  const snapshot = await env.DB.prepare(
+    "UPDATE reset_request_state SET count = count + ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1 RETURNING cycle_id, since, count",
+  ).bind(increment).first<ResetRequestRow>();
+  if (!snapshot) return json({ error: "Not initialized" }, { status: 503 });
+  return json({ ...snapshot, request_id: typeof input.request_id === "string" ? input.request_id : null });
+}
+
 async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
-  if (pathname === "/api/content" && request.method === "GET") return handlePublicContent(env);
+  if ((pathname === "/api/resets" || pathname === "/api/content") && request.method === "GET") return handlePublicContent(request, env);
+  if (pathname === "/api/reset-requests") return handleResetRequests(request, env);
+  if (pathname === "/api/sponsors" && request.method === "GET") {
+    return json({ sponsors: [], rotation_ms: 15000, available: 4, total: 4, monthly_visits: 150000, monthly_price_usd: 699, checkout_enabled: false });
+  }
   if (pathname === "/api/admin/content" && request.method === "GET") return handleAdminRead(request, env);
   if (pathname === "/api/admin/content" && request.method === "PUT") return handleAdminWrite(request, env);
-  if (pathname.startsWith("/api/")) {
-    return json({ error: "Not found" }, { status: 404, headers: { allow: "GET, PUT" } });
-  }
+  if (pathname.startsWith("/api/")) return json({ error: "Not found" }, { status: 404 });
   return env.ASSETS.fetch(request);
 }
 
@@ -140,5 +217,3 @@ export default {
     }
   },
 } satisfies ExportedHandler<Env>;
-import { timingSafeEqual } from "node:crypto";
-

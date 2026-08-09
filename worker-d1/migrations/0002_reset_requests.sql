@@ -1,0 +1,10 @@
+CREATE TABLE IF NOT EXISTS reset_request_state (
+  id INTEGER PRIMARY KEY CHECK (id = 1),
+  cycle_id TEXT NOT NULL,
+  since TEXT NOT NULL,
+  count INTEGER NOT NULL DEFAULT 0 CHECK (count >= 0),
+  updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT OR IGNORE INTO reset_request_state (id, cycle_id, since, count)
+VALUES (1, '2086188036493344823', '2026-08-08T20:29:22.000Z', 42312);

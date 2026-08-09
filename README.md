@@ -1,11 +1,11 @@
-# Configurable reset tracker
+# Codex Resets — framework-free replica
 
-同一套页面的两种无框架实现：
+对 `codex-resets.com` 当前页面结构、内容模型和视觉样式的复刻，包含两种无框架实现：
 
 - `static-json/`：纯 HTML + CSS + JavaScript + JSON，适合任意静态托管。
 - `worker-d1/`：Cloudflare Worker + D1，带 `/admin/` 配置后台。
 
-两套代码互相独立，不需要构建前端资源。
+两套代码互相独立，不需要构建前端资源。当前配置包含 41 条 reset 事件、26 周热力图、Reset Watch、统计卡片和完整时间线。
 
 ## 1. 静态 JSON 版本
 
@@ -29,3 +29,4 @@ npm run dev
 
 打开 <http://localhost:8787> 查看前台，打开 <http://localhost:8787/admin/> 进入后台。
 
+线上示例：<https://reset-tracker-worker-d1.2835082172.workers.dev/>
