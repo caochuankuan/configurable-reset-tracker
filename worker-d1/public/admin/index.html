@@ -16,6 +16,7 @@
       <p>使用部署时设置的后台账号和密码登录。凭据只保留在当前标签页中，不会被存储。</p>
       <form id="login-form"><label>管理员账号<input id="username" autocomplete="username" required></label><label>管理员密码<input id="password" type="password" autocomplete="current-password" required></label><button type="submit">登录并加载</button></form>
       <p id="login-status" class="status" role="status" aria-live="polite"></p>
+      <form id="reset-form" hidden><h3>首次登录，请设置新密码</h3><label>新密码<input id="new-password" type="password" minlength="10" autocomplete="new-password" required></label><label>确认新密码<input id="confirm-password" type="password" minlength="10" autocomplete="new-password" required></label><button type="submit">修改密码</button></form>
     </section>
     <section id="editor" class="panel" hidden>
       <div class="editor-heading"><div><h2>可视化配置</h2><p id="meta"></p></div><div class="heading-actions"><button id="reload" type="button" class="secondary">重新加载</button><button id="logout" type="button" class="secondary">退出登录</button></div></div>

@@ -4,6 +4,9 @@ const form = document.querySelector("#login-form");
 const usernameInput = document.querySelector("#username");
 const passwordInput = document.querySelector("#password");
 const loginStatus = document.querySelector("#login-status");
+const resetForm = document.querySelector("#reset-form");
+const newPasswordInput = document.querySelector("#new-password");
+const confirmPasswordInput = document.querySelector("#confirm-password");
 const visualEditor = document.querySelector("#visual-editor");
 const textarea = document.querySelector("#content");
 const status = document.querySelector("#status");
@@ -70,7 +73,20 @@ form.addEventListener("submit", async (event) => {
   event.preventDefault();
   credentials = btoa(`${usernameInput.value.trim()}:${passwordInput.value}`);
   loginStatus.textContent = "登录中…";
-  try { await load(); loginStatus.textContent = ""; } catch (error) { credentials = ""; loginStatus.textContent = error instanceof Error ? error.message : String(error); }
+  try { await load(); loginStatus.textContent = ""; } catch (error) { if (error?.message === "首次登录必须修改密码。") { resetForm.hidden = false; loginStatus.textContent = "请先修改初始密码。"; } else { credentials = ""; loginStatus.textContent = error instanceof Error ? error.message : String(error); } }
+});
+resetForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (newPasswordInput.value !== confirmPasswordInput.value) { loginStatus.textContent = "两次输入的密码不一致。"; return; }
+  try {
+    const response = await fetch("/api/admin/password", { method: "PUT", headers: { authorization: `Basic ${credentials}`, "content-type": "application/json" }, body: JSON.stringify({ newPassword: newPasswordInput.value }) });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.error || `HTTP ${response.status}`);
+    passwordInput.value = newPasswordInput.value;
+    credentials = btoa(`${usernameInput.value.trim()}:${passwordInput.value}`);
+    resetForm.hidden = true;
+    await load();
+  } catch (error) { loginStatus.textContent = error instanceof Error ? error.message : String(error); }
 });
 document.querySelector("#reload").addEventListener("click", () => load().catch((error) => { status.textContent = error.message; }));
 document.querySelector("#logout").addEventListener("click", () => { credentials = ""; content = null; editor.hidden = true; login.hidden = false; passwordInput.value = ""; });

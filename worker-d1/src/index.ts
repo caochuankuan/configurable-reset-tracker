@@ -41,6 +41,7 @@ type BlogData = {
 
 type ContentRow = { content_json: string; version: number; updated_at: string };
 type ResetRequestRow = { cycle_id: string; since: string; count: number };
+type AdminAuthRow = { username: string; password_hash: string; must_change: number };
 
 const JSON_HEADERS = {
   "content-type": "application/json; charset=utf-8",
@@ -87,6 +88,11 @@ async function secretMatches(provided: string, expected: string): Promise<boolea
   return timingSafeEqual(new Uint8Array(providedHash), new Uint8Array(expectedHash));
 }
 
+function hashMatches(providedHash: string, expectedHash: string): boolean {
+  const encoder = new TextEncoder();
+  return timingSafeEqual(encoder.encode(providedHash), encoder.encode(expectedHash));
+}
+
 function decodeBasic(value: string): { username: string; password: string } | null {
   if (!value.startsWith("Basic ")) return null;
   try {
@@ -99,14 +105,34 @@ function decodeBasic(value: string): { username: string; password: string } | nu
   }
 }
 
-async function authorized(request: Request, env: Env): Promise<boolean> {
+async function hashSecret(value: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function readAdminAuth(env: Env): Promise<AdminAuthRow | null> {
+  return env.DB.prepare("SELECT username, password_hash, must_change FROM admin_auth WHERE id = 1").first<AdminAuthRow>();
+}
+
+async function ensureAdminAuth(env: Env): Promise<AdminAuthRow> {
+  const existing = await readAdminAuth(env);
+  if (existing) return existing;
+  const passwordHash = await hashSecret(env.ADMIN_PASSWORD);
+  await env.DB.prepare(
+    "INSERT OR IGNORE INTO admin_auth (id, username, password_hash, must_change) VALUES (1, ?, ?, 1)",
+  ).bind(env.ADMIN_USERNAME, passwordHash).run();
+  return (await readAdminAuth(env)) ?? { username: env.ADMIN_USERNAME, password_hash: passwordHash, must_change: 1 };
+}
+
+async function authorized(request: Request, env: Env): Promise<{ ok: boolean; mustChange: boolean }> {
   const credentials = decodeBasic(request.headers.get("authorization") ?? "");
-  if (!credentials) return false;
+  if (!credentials) return { ok: false, mustChange: false };
+  const admin = await ensureAdminAuth(env);
   const [usernameMatches, passwordMatches] = await Promise.all([
-    secretMatches(credentials.username, env.ADMIN_USERNAME),
-    secretMatches(credentials.password, env.ADMIN_PASSWORD),
+    secretMatches(credentials.username, admin.username),
+    hashMatches(await hashSecret(credentials.password), admin.password_hash),
   ]);
-  return usernameMatches && passwordMatches;
+  return { ok: usernameMatches && passwordMatches, mustChange: admin.must_change === 1 };
 }
 
 async function readContent(env: Env): Promise<ContentRow | null> {
@@ -149,9 +175,11 @@ async function handlePublicContent(request: Request, env: Env): Promise<Response
 }
 
 async function handleAdminRead(request: Request, env: Env): Promise<Response> {
-  if (!await authorized(request, env)) {
+  const auth = await authorized(request, env);
+  if (!auth.ok) {
     return json({ error: "账号或密码不正确。" }, { status: 401, headers: { "www-authenticate": 'Basic realm="内容管理"' } });
   }
+  if (auth.mustChange) return json({ error: "首次登录必须修改密码。", mustChange: true }, { status: 428 });
   const { content, row } = await resolvedContent(request, env);
   return json({ content, version: row?.version ?? 0, updatedAt: row?.updated_at ?? null }, {
     headers: { "cache-control": "no-store" },
@@ -159,9 +187,11 @@ async function handleAdminRead(request: Request, env: Env): Promise<Response> {
 }
 
 async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
-  if (!await authorized(request, env)) {
+  const auth = await authorized(request, env);
+  if (!auth.ok) {
     return json({ error: "账号或密码不正确。" }, { status: 401, headers: { "www-authenticate": 'Basic realm="内容管理"' } });
   }
+  if (auth.mustChange) return json({ error: "首次登录必须修改密码。", mustChange: true }, { status: 428 });
   const length = Number(request.headers.get("content-length") ?? 0);
   if (length > 512_000) return json({ error: "请求内容过大。" }, { status: 413 });
 
@@ -189,6 +219,17 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   return json({ ok: true, version: saved?.version, updatedAt: saved?.updated_at }, {
     headers: { "cache-control": "no-store" },
   });
+}
+
+async function handleAdminPassword(request: Request, env: Env): Promise<Response> {
+  const auth = await authorized(request, env);
+  if (!auth.ok) return json({ error: "账号或密码不正确。" }, { status: 401, headers: { "www-authenticate": 'Basic realm="内容管理"' } });
+  let body: unknown;
+  try { body = await request.json(); } catch { return json({ error: "请求内容必须是有效的 JSON。" }, { status: 400 }); }
+  const newPassword = body && typeof body === "object" ? (body as { newPassword?: unknown }).newPassword : null;
+  if (typeof newPassword !== "string" || newPassword.length < 10 || newPassword.length > 200) return json({ error: "新密码长度需要为 10 到 200 位。" }, { status: 422 });
+  await env.DB.prepare("UPDATE admin_auth SET password_hash = ?, must_change = 0 WHERE id = 1").bind(await hashSecret(newPassword)).run();
+  return json({ ok: true });
 }
 
 async function readResetRequests(env: Env): Promise<ResetRequestSnapshot | null> {
@@ -221,6 +262,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (pathname === "/api/reactions") return handleResetRequests(request, env);
   if (pathname === "/api/admin/content" && request.method === "GET") return handleAdminRead(request, env);
   if (pathname === "/api/admin/content" && request.method === "PUT") return handleAdminWrite(request, env);
+  if (pathname === "/api/admin/password" && request.method === "PUT") return handleAdminPassword(request, env);
   if (pathname.startsWith("/api/")) return json({ error: "接口不存在" }, { status: 404 });
   return env.ASSETS.fetch(request);
 }

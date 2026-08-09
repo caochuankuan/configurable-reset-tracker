@@ -12,6 +12,8 @@ npm run db:local
 npm run dev
 ```
 
+首次部署可使用账号 `admin`、初始密码 `ResetBlog-2026!` 登录，后台会强制要求设置新密码。生产环境请在部署前将 `ADMIN_PASSWORD` 换成你自己的初始密码。
+
 - 前台：<http://localhost:8787>
 - 后台：<http://localhost:8787/admin/>
 
