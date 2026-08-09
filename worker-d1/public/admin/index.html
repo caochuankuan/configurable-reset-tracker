@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Content admin</title>
+  <link rel="stylesheet" href="/admin/styles.css">
+  <script type="module" src="/admin/app.js"></script>
+</head>
+<body>
+  <main class="admin-shell">
+    <header><div><p class="eyebrow">Worker + D1</p><h1>Content admin</h1></div><a href="/">View site →</a></header>
+    <section id="login" class="panel">
+      <h2>Connect</h2>
+      <p>Enter the <code>ADMIN_TOKEN</code> secret. It stays in this tab and is not stored.</p>
+      <form id="login-form"><label>Admin token<input id="token" type="password" autocomplete="current-password" required></label><button type="submit">Load content</button></form>
+    </section>
+    <section id="editor" class="panel" hidden>
+      <div class="editor-heading"><div><h2>JSON configuration</h2><p id="meta"></p></div><button id="reload" type="button" class="secondary">Reload</button></div>
+      <label for="content">Content JSON</label>
+      <textarea id="content" spellcheck="false" rows="28"></textarea>
+      <div class="editor-actions"><p id="status" role="status"></p><button id="save" type="button">Validate & save</button></div>
+    </section>
+  </main>
+</body>
+</html>
+
