@@ -4,6 +4,13 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-08",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "blog.yujian.love/*",
+      "zone_name": "yujian.love"
+    }
+  ],
   "assets": {
     "directory": "./public",
     "binding": "ASSETS",
