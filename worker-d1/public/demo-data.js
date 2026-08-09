@@ -43,6 +43,11 @@ export function getDemoData() {
     site: {
       title: "代码与思考",
       description: "记录 AI 编程、产品构建和独立开发中的真实经验。",
+      contacts: {
+        github: { label: "GitHub", value: "caochuankuan", url: "https://github.com/caochuankuan" },
+        qq: { label: "QQ", value: "2835082172", url: "https://wpa.qq.com/msgrd?v=3&uin=2835082172&site=qq&menu=yes" },
+        email: { label: "邮箱", value: "chuankuancao@gmail.com", url: "mailto:chuankuancao@gmail.com" },
+      },
     },
     posts,
     featured: {
@@ -65,10 +70,7 @@ export function getDemoData() {
     ui: {
       site_title: "代码与思考",
       site_description: "记录 AI 编程、产品构建和独立开发中的真实经验。",
-      subscription_label: "文章更新通知",
-      browser: "浏览器",
-      telegram: "Telegram",
-      email: "邮件",
+      subscription_label: "联系方式",
       featured: "本周精选",
       recommendation_score: "读者推荐度",
       recommendation_reason: "推荐理由",

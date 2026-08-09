@@ -22,7 +22,11 @@ type ResetRequestSnapshot = {
 };
 
 type BlogData = {
-  site: { title: string; description: string };
+  site: {
+    title: string;
+    description: string;
+    contacts: Record<"github" | "qq" | "email", { label: string; value: string; url: string }>;
+  };
   posts: BlogPost[];
   stats: {
     total: number;
@@ -57,6 +61,10 @@ function validateContent(value: unknown): value is BlogData {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<BlogData>;
   if (!candidate.site || typeof candidate.site.title !== "string" || typeof candidate.site.description !== "string") return false;
+  if (!candidate.site.contacts || !["github", "qq", "email"].every((key) => {
+    const contact = candidate.site?.contacts[key as keyof typeof candidate.site.contacts];
+    return contact && typeof contact.label === "string" && typeof contact.value === "string" && typeof contact.url === "string";
+  })) return false;
   if (!candidate.ui || typeof candidate.ui !== "object") return false;
   if (!Array.isArray(candidate.posts) || candidate.posts.length > 500) return false;
   if (!candidate.stats || !Number.isInteger(candidate.stats.total) || !validDate(candidate.stats.last_published_at)) return false;

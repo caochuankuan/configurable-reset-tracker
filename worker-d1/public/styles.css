@@ -883,6 +883,19 @@ a:focus-visible {
   transition: transform 0.1s ease, box-shadow 0.1s ease;
 }
 
+.contact-link {
+  text-decoration: none;
+}
+
+.contact-link .push-toggle-icon {
+  fill: currentColor;
+  stroke: none;
+}
+
+.contact-link:hover .push-toggle-icon {
+  animation: none;
+}
+
 .push-toggle {
   background: var(--sun);
   color: var(--on-sun);
@@ -1560,6 +1573,22 @@ a:focus-visible {
 .watch-meta a {
   margin-left: auto;
   white-space: nowrap;
+}
+
+.watch-meta .post-open {
+  display: inline-block;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  margin-top: 0;
+  margin-left: auto;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  line-height: inherit;
+  text-decoration: underline;
+  white-space: nowrap;
+  cursor: pointer;
 }
 
 /* Stat stickers */
@@ -2242,6 +2271,12 @@ button.log-item-link {
     width: auto;
     margin-left: auto;
     margin-top: 0;
+  }
+
+  .watch-meta .post-open {
+    width: auto;
+    margin-top: 0;
+    margin-left: auto;
   }
 
   .hero-figure {

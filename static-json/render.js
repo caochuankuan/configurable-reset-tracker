@@ -115,33 +115,24 @@ export function renderHero(stats, posts, featured, reactions, ui, site, isDemo =
   </p>
 
   <div class="subscription-actions" role="group" aria-label="${escapeHtml(ui.subscription_label)}">
-    <div class="push-control" data-role="push-control" hidden>
-      <button class="subscription-action push-toggle" type="button" data-role="push-toggle" aria-pressed="false" aria-describedby="push-hint" title="新文章发布时接收浏览器通知">
-        <svg class="push-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
-          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
-        </svg>
-        <span data-role="push-label">${escapeHtml(ui.browser)}</span>
-      </button>
-      <span class="push-hint" id="push-hint" data-role="push-hint" aria-live="polite"></span>
-    </div>
-    <a class="subscription-action telegram-link" data-role="telegram-link" href="https://t.me/codex_resets" target="_blank" rel="noopener noreferrer" title="在 Telegram 接收文章更新">
-      <svg class="telegram-link-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M22 2 9.6 14.4M22 2l-7.9 20-4.5-7.6L2 10l20-8Z" />
+    <a class="subscription-action push-toggle contact-link" href="${escapeHtml(site.contacts.github.url)}" target="_blank" rel="noopener noreferrer" title="GitHub：${escapeHtml(site.contacts.github.value)}">
+      <svg class="push-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.87c-2.78.6-3.37-1.18-3.37-1.18-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.53 2.35 1.09 2.92.83.09-.65.35-1.09.64-1.34-2.22-.25-4.56-1.11-4.56-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.58 9.58 0 0 1 12 6.84c.85 0 1.71.11 2.51.34 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.75c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
       </svg>
-      <span>${escapeHtml(ui.telegram)}</span>
+      <span>${escapeHtml(site.contacts.github.label)} · ${escapeHtml(site.contacts.github.value)}</span>
     </a>
-    <button class="subscription-action email-toggle" type="button" data-role="email-toggle" aria-expanded="false" aria-controls="email-subscribe-form" aria-describedby="email-hint" title="新文章发布时接收邮件">
+    <a class="subscription-action telegram-link contact-link" href="${escapeHtml(site.contacts.qq.url)}" target="_blank" rel="noopener noreferrer" title="QQ：${escapeHtml(site.contacts.qq.value)}">
+      <svg class="telegram-link-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M21 12a8 8 0 0 1-8 8H8l-5 2 1.7-4.4A8 8 0 1 1 21 12Z" />
+      </svg>
+      <span>${escapeHtml(site.contacts.qq.label)} · ${escapeHtml(site.contacts.qq.value)}</span>
+    </a>
+    <a class="subscription-action email-toggle contact-link" href="${escapeHtml(site.contacts.email.url)}" title="发送邮件至 ${escapeHtml(site.contacts.email.value)}">
       <svg class="email-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M3 5h18v14H3zM3 6l9 7 9-7" />
       </svg>
-      <span data-role="email-label">${escapeHtml(ui.email)}</span>
-    </button>
-    <form class="email-subscribe-form" id="email-subscribe-form" data-role="email-form" hidden>
-      <label class="visually-hidden" for="reset-email">邮箱地址</label>
-      <input class="email-input" id="reset-email" data-role="email-input" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@example.com" aria-describedby="email-hint" required />
-      <button class="subscription-action email-submit" data-role="email-submit" type="submit">发送链接</button>
-    </form>
-    <p class="email-hint" id="email-hint" data-role="email-hint" aria-live="polite" hidden></p>
+      <span>${escapeHtml(site.contacts.email.value)}</span>
+    </a>
   </div>
 
   ${renderFeatured(featured, posts, ui)}
@@ -208,7 +199,7 @@ export function renderFeatured(featured, posts, ui) {
   <p class="watch-context"><span>${escapeHtml(ui.recommendation_reason)}</span> “${escapeHtml(featured.reason)}”</p>
   <div class="watch-meta">
     <span>${escapeHtml(ui.published)} <span data-role="relative-time" data-datetime="${escapeHtml(post.published_at)}">${formatRelative(Date.parse(post.published_at))}</span></span>
-    <button class="log-item-link post-open" type="button" data-role="post-open" data-post-id="${escapeHtml(post.id)}">${escapeHtml(ui.expand)} &rarr;</button>
+    <button class="post-open" type="button" data-role="post-open" data-post-id="${escapeHtml(post.id)}">${escapeHtml(ui.expand)} &rarr;</button>
   </div>
 </section>`;
 }
