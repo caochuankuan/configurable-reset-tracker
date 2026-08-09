@@ -18,6 +18,8 @@ python3 -m http.server 8080
 
 打开 <http://localhost:8080>。修改 `content.json` 后刷新页面即可看到结果。浏览器的 `file://` 模式通常不允许读取 JSON，因此请通过 HTTP 服务预览。
 
+GitHub Pages：<https://caochuankuan.github.io/configurable-reset-tracker/>（由 `static-json/` 自动发布）。
+
 ## 2. Cloudflare Worker + D1 版本
 
 详细步骤见 [`worker-d1/README.md`](./worker-d1/README.md)。
