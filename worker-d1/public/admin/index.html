@@ -15,6 +15,7 @@
       <h2>Connect</h2>
       <p>Enter the <code>ADMIN_TOKEN</code> secret. It stays in this tab and is not stored.</p>
       <form id="login-form"><label>Admin token<input id="token" type="password" autocomplete="current-password" required></label><button type="submit">Load content</button></form>
+      <p id="login-status" class="status" role="status" aria-live="polite"></p>
     </section>
     <section id="editor" class="panel" hidden>
       <div class="editor-heading"><div><h2>JSON configuration</h2><p id="meta"></p></div><button id="reload" type="button" class="secondary">Reload</button></div>
@@ -25,4 +26,3 @@
   </main>
 </body>
 </html>
-
