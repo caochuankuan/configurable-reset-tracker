@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "reset-tracker-db",
-      "database_id": "replace-with-your-d1-database-id",
+      "database_id": "9ab98ed4-839d-4ee8-8b69-fdfdd3916cb8",
       "migrations_dir": "./migrations"
     }
   ],
