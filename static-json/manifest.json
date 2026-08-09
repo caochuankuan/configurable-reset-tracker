@@ -1,6 +1,6 @@
 {
-  "name": "Codex Resets",
-  "short_name": "Codex Resets",
+  "name": "Codex 重置追踪",
+  "short_name": "重置追踪",
   "display": "standalone",
   "start_url": "/"
 }

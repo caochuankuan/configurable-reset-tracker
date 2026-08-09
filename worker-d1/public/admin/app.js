@@ -21,11 +21,11 @@ async function api(method = "GET", body) {
 }
 
 async function load() {
-  status.textContent = "Loading…";
+  status.textContent = "加载中…";
   const result = await api();
   version = result.version;
   textarea.value = JSON.stringify(result.content, null, 2);
-  meta.textContent = `Version ${version} · Updated ${result.updatedAt}`;
+  meta.textContent = `版本 ${version} · 更新时间 ${result.updatedAt}`;
   login.hidden = true;
   editor.hidden = false;
   status.textContent = "";
@@ -34,9 +34,9 @@ async function load() {
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
   token = tokenInput.value.trim();
-  loginStatus.textContent = "Connecting…";
+  loginStatus.textContent = "连接中…";
   if (!token) {
-    loginStatus.textContent = "Enter the admin token.";
+    loginStatus.textContent = "请输入管理员令牌。";
     return;
   }
   try {
@@ -49,13 +49,13 @@ form.addEventListener("submit", async (event) => {
 
 document.querySelector("#reload").addEventListener("click", () => { load().catch((error) => { status.textContent = error.message; }); });
 document.querySelector("#save").addEventListener("click", async () => {
-  status.textContent = "Validating…";
+  status.textContent = "校验中…";
   let content;
-  try { content = JSON.parse(textarea.value); } catch (error) { status.textContent = `Invalid JSON: ${error.message}`; return; }
+  try { content = JSON.parse(textarea.value); } catch (error) { status.textContent = `JSON 无效：${error.message}`; return; }
   try {
     const result = await api("PUT", { content, expectedVersion: version });
     version = result.version;
-    meta.textContent = `Version ${version} · Updated ${result.updatedAt}`;
-    status.textContent = "Saved. The public page will update within 60 seconds.";
+    meta.textContent = `版本 ${version} · 更新时间 ${result.updatedAt}`;
+    status.textContent = "已保存，公开页面将在 60 秒内更新。";
   } catch (error) { status.textContent = error instanceof Error ? error.message : String(error); }
 });

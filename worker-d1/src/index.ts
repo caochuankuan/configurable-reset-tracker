@@ -93,9 +93,9 @@ async function readContent(env: Env): Promise<ContentRow | null> {
 async function defaultContent(request: Request, env: Env): Promise<ResetData> {
   const url = new URL("/content.json", request.url);
   const response = await env.ASSETS.fetch(url);
-  if (!response.ok) throw new Error("Default content asset is unavailable.");
+  if (!response.ok) throw new Error("默认内容资源不可用。");
   const content: unknown = await response.json();
-  if (!validateContent(content)) throw new Error("Default content asset is invalid.");
+  if (!validateContent(content)) throw new Error("默认内容资源无效。");
   return content;
 }
 
@@ -125,7 +125,7 @@ async function handlePublicContent(request: Request, env: Env): Promise<Response
 
 async function handleAdminRead(request: Request, env: Env): Promise<Response> {
   if (!await authorized(request, env)) {
-    return json({ error: "Unauthorized" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
+    return json({ error: "管理员令牌不正确。" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
   }
   const { content, row } = await resolvedContent(request, env);
   return json({ content, version: row?.version ?? 0, updatedAt: row?.updated_at ?? null }, {
@@ -135,21 +135,21 @@ async function handleAdminRead(request: Request, env: Env): Promise<Response> {
 
 async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
   if (!await authorized(request, env)) {
-    return json({ error: "Unauthorized" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
+    return json({ error: "管理员令牌不正确。" }, { status: 401, headers: { "www-authenticate": "Bearer" } });
   }
   const length = Number(request.headers.get("content-length") ?? 0);
-  if (length > 512_000) return json({ error: "Request body is too large." }, { status: 413 });
+  if (length > 512_000) return json({ error: "请求内容过大。" }, { status: 413 });
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return json({ error: "Request body must be valid JSON." }, { status: 400 });
+    return json({ error: "请求内容必须是有效的 JSON。" }, { status: 400 });
   }
-  if (!body || typeof body !== "object") return json({ error: "Invalid request." }, { status: 400 });
+  if (!body || typeof body !== "object") return json({ error: "请求无效。" }, { status: 400 });
   const candidate = body as { content?: unknown; expectedVersion?: unknown };
   if (!Number.isInteger(candidate.expectedVersion) || !validateContent(candidate.content)) {
-    return json({ error: "Expected Codex Resets JSON and a valid expectedVersion." }, { status: 422 });
+    return json({ error: "需要有效的 Codex 重置追踪 JSON 和 expectedVersion。" }, { status: 422 });
   }
 
   const result = await env.DB.prepare(
@@ -158,7 +158,7 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
      WHERE id = 1 AND version = ?`,
   ).bind(JSON.stringify(candidate.content), candidate.expectedVersion).run();
   if (result.meta.changes !== 1) {
-    return json({ error: "Content changed since it was loaded. Reload and try again." }, { status: 409 });
+    return json({ error: "内容在加载后已被修改，请重新加载后再试。" }, { status: 409 });
   }
   const saved = await readContent(env);
   return json({ ok: true, version: saved?.version, updatedAt: saved?.updated_at }, {
@@ -175,18 +175,18 @@ async function readResetRequests(env: Env): Promise<ResetRequestSnapshot | null>
 async function handleResetRequests(request: Request, env: Env): Promise<Response> {
   if (request.method === "GET") {
     const snapshot = await readResetRequests(env);
-    return snapshot ? json(snapshot, { headers: { "cache-control": "no-store" } }) : json({ error: "Not initialized" }, { status: 503 });
+    return snapshot ? json(snapshot, { headers: { "cache-control": "no-store" } }) : json({ error: "尚未初始化" }, { status: 503 });
   }
-  if (request.method !== "POST") return json({ error: "Method not allowed" }, { status: 405, headers: { allow: "GET, POST" } });
+  if (request.method !== "POST") return json({ error: "不允许使用此请求方法" }, { status: 405, headers: { allow: "GET, POST" } });
   let body: unknown;
-  try { body = await request.json(); } catch { return json({ error: "Invalid JSON" }, { status: 400 }); }
+  try { body = await request.json(); } catch { return json({ error: "JSON 无效" }, { status: 400 }); }
   const input = body as { n?: unknown; request_id?: unknown };
   const increment = Number(input?.n);
-  if (!Number.isInteger(increment) || increment < 1 || increment > 25) return json({ error: "n must be an integer from 1 to 25" }, { status: 422 });
+  if (!Number.isInteger(increment) || increment < 1 || increment > 25) return json({ error: "n 必须是 1 到 25 之间的整数" }, { status: 422 });
   const snapshot = await env.DB.prepare(
     "UPDATE reset_request_state SET count = count + ?, updated_at = CURRENT_TIMESTAMP WHERE id = 1 RETURNING cycle_id, since, count",
   ).bind(increment).first<ResetRequestRow>();
-  if (!snapshot) return json({ error: "Not initialized" }, { status: 503 });
+  if (!snapshot) return json({ error: "尚未初始化" }, { status: 503 });
   return json({ ...snapshot, request_id: typeof input.request_id === "string" ? input.request_id : null });
 }
 
@@ -194,12 +194,9 @@ async function route(request: Request, env: Env): Promise<Response> {
   const { pathname } = new URL(request.url);
   if ((pathname === "/api/resets" || pathname === "/api/content") && request.method === "GET") return handlePublicContent(request, env);
   if (pathname === "/api/reset-requests") return handleResetRequests(request, env);
-  if (pathname === "/api/sponsors" && request.method === "GET") {
-    return json({ sponsors: [], rotation_ms: 15000, available: 4, total: 4, monthly_visits: 150000, monthly_price_usd: 699, checkout_enabled: false });
-  }
   if (pathname === "/api/admin/content" && request.method === "GET") return handleAdminRead(request, env);
   if (pathname === "/api/admin/content" && request.method === "PUT") return handleAdminWrite(request, env);
-  if (pathname.startsWith("/api/")) return json({ error: "Not found" }, { status: 404 });
+  if (pathname.startsWith("/api/")) return json({ error: "接口不存在" }, { status: 404 });
   return env.ASSETS.fetch(request);
 }
 
@@ -213,7 +210,7 @@ export default {
         path: new URL(request.url).pathname,
         error: error instanceof Error ? error.message : String(error),
       }));
-      return json({ error: "Internal server error" }, { status: 500 });
+      return json({ error: "服务器内部错误" }, { status: 500 });
     }
   },
 } satisfies ExportedHandler<Env>;

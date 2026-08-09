@@ -30,24 +30,33 @@ const RELATIVE_UNITS = [
   ["minute", 60],
 ];
 
+const RELATIVE_UNIT_LABELS = {
+  year: "年",
+  month: "个月",
+  week: "周",
+  day: "天",
+  hour: "小时",
+  minute: "分钟",
+};
+
 const rtf = typeof Intl !== "undefined" && Intl.RelativeTimeFormat
-  ? new Intl.RelativeTimeFormat("en", { numeric: "always" })
+  ? new Intl.RelativeTimeFormat("zh-CN", { numeric: "always" })
   : null;
 
 export function formatRelative(dateMs, nowMs = Date.now()) {
   if (!Number.isFinite(dateMs) || !Number.isFinite(nowMs)) return "—";
   const diffSec = Math.round((dateMs - nowMs) / 1000); // negative = past
   const absSec = Math.abs(diffSec);
-  if (absSec < 45) return "just now";
+  if (absSec < 45) return "刚刚";
   for (const [unit, secs] of RELATIVE_UNITS) {
     if (absSec >= secs || unit === "minute") {
       const value = Math.round(diffSec / secs);
       if (rtf) return rtf.format(value, unit);
-      const plural = Math.abs(value) === 1 ? unit : `${unit}s`;
-      return diffSec < 0 ? `${Math.abs(value)} ${plural} ago` : `in ${Math.abs(value)} ${plural}`;
+      const unitLabel = RELATIVE_UNIT_LABELS[unit];
+      return diffSec < 0 ? `${Math.abs(value)}${unitLabel}前` : `${Math.abs(value)}${unitLabel}后`;
     }
   }
-  return "just now";
+  return "刚刚";
 }
 
 function fmtNumber(n) {
@@ -57,11 +66,11 @@ function fmtNumber(n) {
 
 function fmtInterval(days) {
   if (days === null || days === undefined || Number.isNaN(days)) return "—";
-  return `${days.toFixed(1)}d`;
+  return `${days.toFixed(1)}天`;
 }
 
 function renderCountDigits(value) {
-  const text = value === null ? "" : new Intl.NumberFormat("en").format(value);
+  const text = value === null ? "" : new Intl.NumberFormat("zh-CN").format(value);
   return Array.from(text, (character) =>
     `<span class="t-digit">${escapeHtml(character)}</span>`).join("");
 }
@@ -90,11 +99,11 @@ export function renderHero(stats, events, watch, resetRequests, isDemo = false) 
 
   const headline = lastResetAt
     ? `<span class="hero-figure" data-role="relative-time" data-datetime="${escapeHtml(lastResetAt)}">${formatRelative(Date.parse(lastResetAt))}</span>`
-    : `<span class="hero-figure hero-figure--muted">No resets tracked yet</span>`;
+    : `<span class="hero-figure hero-figure--muted">尚未记录到重置</span>`;
 
   const sub = lastResetAt
     ? `<p class="hero-sub" data-role="absolute-time" data-datetime="${escapeHtml(lastResetAt)}">&nbsp;</p>`
-    : `<p class="hero-sub">Once @thsottiaux announces one, it'll show up here within minutes.</p>`;
+    : `<p class="hero-sub">@thsottiaux 发布重置消息后，几分钟内就会显示在这里。</p>`;
   const requestCount = Number.isSafeInteger(resetRequests?.count) && resetRequests.count >= 0
     ? resetRequests.count
     : null;
@@ -102,57 +111,55 @@ export function renderHero(stats, events, watch, resetRequests, isDemo = false) 
   const requestSince = resetRequests?.since ?? "";
 
   return `
-<section class="hero" aria-label="Current status">
+<section class="hero" aria-label="当前状态">
   <p class="hero-explainer">
-    We watch <a href="https://x.com/thsottiaux" target="_blank" rel="noopener noreferrer">@thsottiaux</a>
-    for Codex reset announcements, so you don't have to.
+    我们持续关注 <a href="https://x.com/thsottiaux" target="_blank" rel="noopener noreferrer">@thsottiaux</a>
+    发布的 Codex 额度重置消息，你不必亲自盯着动态。
   </p>
 
-  <div class="subscription-actions" role="group" aria-label="Reset notifications">
+  <div class="subscription-actions" role="group" aria-label="重置通知">
     <div class="push-control" data-role="push-control" hidden>
-      <button class="subscription-action push-toggle" type="button" data-role="push-toggle" aria-pressed="false" aria-describedby="push-hint" title="Get browser notifications when Codex resets">
+      <button class="subscription-action push-toggle" type="button" data-role="push-toggle" aria-pressed="false" aria-describedby="push-hint" title="Codex 重置时接收浏览器通知">
         <svg class="push-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
         </svg>
-        <span data-role="push-label">browser</span>
+        <span data-role="push-label">浏览器</span>
       </button>
       <span class="push-hint" id="push-hint" data-role="push-hint" aria-live="polite"></span>
     </div>
-    <a class="subscription-action telegram-link" data-role="telegram-link" href="https://t.me/codex_resets" target="_blank" rel="noopener noreferrer" title="Same pings, in Telegram">
+    <a class="subscription-action telegram-link" data-role="telegram-link" href="https://t.me/codex_resets" target="_blank" rel="noopener noreferrer" title="在 Telegram 接收相同通知">
       <svg class="telegram-link-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M22 2 9.6 14.4M22 2l-7.9 20-4.5-7.6L2 10l20-8Z" />
       </svg>
-      <span>telegram</span>
+      <span>Telegram</span>
     </a>
-    <button class="subscription-action email-toggle" type="button" data-role="email-toggle" aria-expanded="false" aria-controls="email-subscribe-form" aria-describedby="email-hint" title="Get an email when a Codex reset is confirmed">
+    <button class="subscription-action email-toggle" type="button" data-role="email-toggle" aria-expanded="false" aria-controls="email-subscribe-form" aria-describedby="email-hint" title="确认 Codex 重置时接收邮件">
       <svg class="email-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M3 5h18v14H3zM3 6l9 7 9-7" />
       </svg>
-      <span data-role="email-label">email</span>
+      <span data-role="email-label">邮件</span>
     </button>
     <form class="email-subscribe-form" id="email-subscribe-form" data-role="email-form" hidden>
-      <label class="visually-hidden" for="reset-email">Email address</label>
+      <label class="visually-hidden" for="reset-email">邮箱地址</label>
       <input class="email-input" id="reset-email" data-role="email-input" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" placeholder="you@example.com" aria-describedby="email-hint" required />
-      <button class="subscription-action email-submit" data-role="email-submit" type="submit">send link</button>
+      <button class="subscription-action email-submit" data-role="email-submit" type="submit">发送链接</button>
     </form>
     <p class="email-hint" id="email-hint" data-role="email-hint" aria-live="polite" hidden></p>
   </div>
 
-  <div class="sponsor-mobile" data-role="sponsor-mobile" aria-label="Sponsored product" hidden></div>
-
   ${renderResetWatch(watch)}
 
   <div class="hero-card">
-    <span class="hero-label">Time since the last blessing</span>
+    <span class="hero-label">距上次额度恩赐</span>
     ${headline}
     <div class="hero-footer">
       ${sub}
-      <section class="reset-plea" data-role="reset-plea" data-cycle-id="${escapeHtml(requestCycle)}" data-since="${escapeHtml(requestSince)}" data-count="${requestCount ?? ""}" data-demo="${isDemo ? "1" : "0"}" aria-label="Reset requests">
+      <section class="reset-plea" data-role="reset-plea" data-cycle-id="${escapeHtml(requestCycle)}" data-since="${escapeHtml(requestSince)}" data-count="${requestCount ?? ""}" data-demo="${isDemo ? "1" : "0"}" aria-label="重置请求">
         <div class="reset-plea-action">
-          <button class="reset-plea-button" type="button" data-role="reset-plea-button" aria-label="Beg for a reset" title="Beg for a reset">
+          <button class="reset-plea-button" type="button" data-role="reset-plea-button" aria-label="求一次重置" title="求一次重置">
             <span class="reset-plea-button-emoji" aria-hidden="true">🙏</span>
-            <span class="reset-plea-button-label">beg</span>
-            <span class="reset-plea-count t-digit-group" data-role="reset-plea-count" role="status" aria-live="polite" aria-atomic="true" aria-label="${requestCount === null ? "Reset request count unavailable" : `${requestCount} reset requests since last reset`}">${renderCountDigits(requestCount)}</span>
+            <span class="reset-plea-button-label">求重置</span>
+            <span class="reset-plea-count t-digit-group" data-role="reset-plea-count" role="status" aria-live="polite" aria-atomic="true" aria-label="${requestCount === null ? "暂时无法获取重置请求数" : `上次重置后已有 ${requestCount} 次请求`}">${renderCountDigits(requestCount)}</span>
           </button>
           <span class="reset-plea-bursts" data-role="reset-plea-bursts" aria-hidden="true"></span>
         </div>
@@ -162,15 +169,15 @@ export function renderHero(stats, events, watch, resetRequests, isDemo = false) 
 
   <dl class="stat-row">
     <div class="stat-tile stat-tile--sun">
-      <dt><span class="stat-label-full">Resets</span><span class="stat-label-short">Resets</span></dt>
+      <dt><span class="stat-label-full">重置次数</span><span class="stat-label-short">重置</span></dt>
       <dd class="mono">${fmtNumber(stats?.total)}</dd>
     </div>
     <div class="stat-tile stat-tile--rose">
-      <dt><span class="stat-label-full">Avg. miracle interval</span><span class="stat-label-short">Avg. wait</span></dt>
+      <dt><span class="stat-label-full">平均奇迹间隔</span><span class="stat-label-short">平均等待</span></dt>
       <dd class="mono">${fmtInterval(stats?.avg_interval_days)}</dd>
     </div>
     <div class="stat-tile stat-tile--sky">
-      <dt><span class="stat-label-full">Longest wait</span><span class="stat-label-short">Longest wait</span></dt>
+      <dt><span class="stat-label-full">最长等待</span><span class="stat-label-short">最长等待</span></dt>
       <dd class="mono">${fmtInterval(longestGap)}</dd>
     </div>
   </dl>
@@ -181,8 +188,8 @@ export function renderHero(stats, events, watch, resetRequests, isDemo = false) 
 // Reset watch
 // ---------------------------------------------------------------------------
 const WATCH_LABELS = {
-  elevated: "Elevated",
-  strong: "Strong signal",
+  elevated: "可能性升高",
+  strong: "强烈信号",
 };
 
 export function renderResetWatch(watch) {
@@ -197,32 +204,32 @@ export function renderResetWatch(watch) {
     ? Math.min(90, Math.floor(rawChance / 10) * 10)
     : null;
   const forecast = chanceFloor === null
-    ? `<h2 id="watch-heading">Tibo might be hinting at a reset</h2>`
+    ? `<h2 id="watch-heading">Tibo 可能正在暗示一次重置</h2>`
     : `
   <div class="watch-forecast">
-    <p class="watch-probability" aria-label="Greater than ${chanceFloor} percent">
+    <p class="watch-probability" aria-label="大于百分之 ${chanceFloor}">
       <span aria-hidden="true">&gt;${chanceFloor}<small>%</small></span>
     </p>
     <div class="watch-forecast-copy">
-      <h2 id="watch-heading">${escapeHtml(windowHours)}h reset chance</h2>
-      <p>AI estimate</p>
+      <h2 id="watch-heading">${escapeHtml(windowHours)} 小时重置概率</h2>
+      <p>人工智能估算</p>
     </div>
   </div>`;
   const context = watch.context_text
-    ? `<p class="watch-context"><span>In reply to</span> “${escapeHtml(cleanTweetText(watch.context_text))}”</p>`
+    ? `<p class="watch-context"><span>回复内容</span> “${escapeHtml(cleanTweetText(watch.context_text))}”</p>`
     : "";
 
   return `
 <section class="watch-card watch-card--${level}" data-role="reset-watch" data-expires-at="${escapeHtml(watch.expires_at)}" aria-labelledby="watch-heading">
   <div class="watch-topline">
-    <span class="watch-kicker"><span aria-hidden="true">👀</span> Reset watch</span>
+    <span class="watch-kicker"><span aria-hidden="true">👀</span> 重置观察</span>
   </div>
   ${forecast}
   <blockquote>“${escapeHtml(cleanTweetText(watch.text))}” - Tibo</blockquote>
   ${context}
   <div class="watch-meta">
-    <span>Seen <span data-role="relative-time" data-datetime="${escapeHtml(watch.observed_at)}">${formatRelative(Date.parse(watch.observed_at))}</span></span>
-    <a href="${escapeHtml(watch.tweet_url)}" target="_blank" rel="noopener noreferrer">View on X &rarr;</a>
+    <span>发现于 <span data-role="relative-time" data-datetime="${escapeHtml(watch.observed_at)}">${formatRelative(Date.parse(watch.observed_at))}</span></span>
+    <a href="${escapeHtml(watch.tweet_url)}" target="_blank" rel="noopener noreferrer">在 X 查看 &rarr;</a>
   </div>
 </section>`;
 }
@@ -281,8 +288,8 @@ function buildGrid(events) {
   return weeks;
 }
 
-const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-const WEEKDAY_ROW_LABELS = { 1: "Mon", 3: "Wed", 5: "Fri" };
+const MONTH_NAMES = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+const WEEKDAY_ROW_LABELS = { 1: "周一", 3: "周三", 5: "周五" };
 
 function renderMonthLabels(weeks) {
   const labels = [];
@@ -319,9 +326,9 @@ function renderCells(weeks) {
       const announcement = day.events[0] ?? null;
       const snippet = announcement ? escapeHtml(cleanTweetText(announcement.text)).slice(0, 120) : "";
       const label = count === 0
-        ? `No reset`
-        : `${count} reset${count > 1 ? "s" : ""}`;
-      const attributes = `class="cg-cell" data-level="${level}" data-date="${day.date}" data-count="${count}" data-snippet="${snippet}" style="grid-column:${wi + 1};grid-row:${di + 2}" aria-label="${label} on ${day.date} (UTC)"`;
+        ? `没有重置`
+        : `${count} 次重置`;
+      const attributes = `class="cg-cell" data-level="${level}" data-date="${day.date}" data-count="${count}" data-snippet="${snippet}" style="grid-column:${wi + 1};grid-row:${di + 2}" aria-label="${day.date}（UTC）：${label}"`;
       out += announcement
         ? `<a ${attributes} href="${escapeHtml(announcement.tweet_url)}" target="_blank" rel="noopener noreferrer"></a>`
         : `<button type="button" ${attributes}></button>`;
@@ -335,8 +342,8 @@ export function renderContributionGraph(events) {
   return `
 <section class="graph-section" aria-labelledby="graph-heading">
   <div class="section-head">
-    <h2 id="graph-heading">The waiting game</h2>
-    <p class="section-sub">Last ${WEEKS_BACK} weeks &middot; <span class="legend-chip legend-chip--hit"></span> he tweeted &middot; <span class="legend-chip"></span> we waited</p>
+    <h2 id="graph-heading">等待游戏</h2>
+    <p class="section-sub">最近 ${WEEKS_BACK} 周 &middot; <span class="legend-chip legend-chip--hit"></span> 发布了消息 &middot; <span class="legend-chip"></span> 继续等待</p>
   </div>
   <div class="graph-card">
     <div class="cg-container">
@@ -369,7 +376,7 @@ function renderLogItems(events) {
           <span class="log-item-abs" data-role="absolute-time" data-datetime="${escapeHtml(ev.announced_at)}">&hellip;</span>
         </div>
         <p class="log-item-text">${escapeHtml(cleanTweetText(ev.text))}</p>
-        <a class="log-item-link" href="${escapeHtml(ev.tweet_url)}" target="_blank" rel="noopener noreferrer">View on X &rarr;</a>
+        <a class="log-item-link" href="${escapeHtml(ev.tweet_url)}" target="_blank" rel="noopener noreferrer">在 X 查看 &rarr;</a>
       </div>
     </li>`).join("");
 }
@@ -379,9 +386,9 @@ export function renderEventLog(events) {
     return `
 <section class="log-section" aria-labelledby="log-heading">
   <div class="section-head">
-    <h2 id="log-heading">In his own words</h2>
+    <h2 id="log-heading">他的原话</h2>
   </div>
-  <p class="log-empty">Nothing yet. The timeline is quiet. Too quiet.</p>
+  <p class="log-empty">暂时没有内容，时间线安静得有些过分。</p>
 </section>`;
   }
 
@@ -391,8 +398,8 @@ export function renderEventLog(events) {
     ? `
   <details class="log-more">
     <summary class="log-more-toggle">
-      <span class="log-more-label-closed">Show all ${events.length} resets</span>
-      <span class="log-more-label-open">Show fewer</span>
+      <span class="log-more-label-closed">显示全部 ${events.length} 次重置</span>
+      <span class="log-more-label-open">收起记录</span>
       <span class="log-more-arrow" aria-hidden="true">&darr;</span>
     </summary>
     <ol class="log-list log-list--more" start="${LOG_PREVIEW_COUNT + 1}">${remainingItems}</ol>
@@ -402,8 +409,8 @@ export function renderEventLog(events) {
   return `
 <section class="log-section" aria-labelledby="log-heading">
   <div class="section-head">
-    <h2 id="log-heading">In his own words</h2>
-    <p class="section-sub">Every announcement, preserved for history</p>
+    <h2 id="log-heading">他的原话</h2>
+    <p class="section-sub">完整保存每一次公告</p>
   </div>
   <ol class="log-list">${previewItems}</ol>${more}
 </section>`;
@@ -421,20 +428,19 @@ export function renderPage(data) {
   } = data || {};
 
   return `
-<div class="sponsor-layout">
 <div class="page">
   <header class="masthead">
     <div class="masthead-brand">
       <img class="masthead-avatar" src="/thsottiaux-avatar.jpg" alt="" aria-hidden="true" width="44" height="44" />
       <div class="masthead-copy">
         <div class="masthead-title-row">
-          <h1 class="masthead-title">Codex Resets</h1>
+          <h1 class="masthead-title">Codex 重置追踪</h1>
         </div>
       </div>
     </div>
     <div class="masthead-side">
-      ${isDemo ? `<span class="demo-badge" title="Showing bundled sample data, not live results">demo data</span>` : ""}
-      <button class="theme-toggle" type="button" data-role="theme-toggle" aria-label="Toggle color theme" title="Toggle color theme">
+      ${isDemo ? `<span class="demo-badge" title="当前显示内置示例数据">示例数据</span>` : ""}
+      <button class="theme-toggle" type="button" data-role="theme-toggle" aria-label="切换颜色主题" title="切换颜色主题">
         <span class="theme-toggle-icons" aria-hidden="true">
           <svg class="theme-toggle-icon theme-toggle-icon--moon" viewBox="0 0 24 24">
             <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z" />
@@ -455,37 +461,10 @@ export function renderPage(data) {
   </main>
 
   <footer class="site-footer">
-    <p>Data from @thsottiaux's tweets, classified by a robot that takes this very seriously. Not affiliated with OpenAI.</p>
-    <p>Tibo, if you're reading this: no pressure.</p>
-    <p>Built by <a href="https://x.com/wong2__" target="_blank" rel="noopener noreferrer">@wong2__</a>.</p>
+    <p>数据来自 @thsottiaux 的动态，由一个极其认真对待此事的机器人负责分类。与 OpenAI 无关。</p>
+    <p>Tibo，如果你看到了：完全没有压力。</p>
+    <p>原始设计来自 <a href="https://x.com/wong2__" target="_blank" rel="noopener noreferrer">@wong2__</a>。</p>
   </footer>
 </div>
-<aside class="sponsor-rail sponsor-rail--left" data-role="sponsor-left" aria-label="Sponsored products" hidden></aside>
-<aside class="sponsor-rail sponsor-rail--right" data-role="sponsor-right" aria-label="Sponsored products" hidden></aside>
-<dialog class="sponsor-dialog" data-role="sponsor-dialog" aria-labelledby="sponsor-dialog-title">
-  <button class="sponsor-dialog-close" type="button" data-role="sponsor-dialog-close" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-
-  <section data-role="sponsor-offer-view">
-    <span class="sponsor-dialog-kicker">Sponsorship</span>
-    <h2 id="sponsor-dialog-title">Reach developers using Codex</h2>
-    <dl class="sponsor-offer-facts">
-      <div class="sponsor-offer-fact sponsor-offer-fact--wide">
-        <dt>Monthly visitors</dt>
-        <dd data-role="sponsor-monthly-visits">~150,000</dd>
-      </div>
-      <div>
-        <dt>Price</dt>
-        <dd><span data-role="sponsor-monthly-price">$699</span><small>/month</small></dd>
-      </div>
-      <div>
-        <dt>Ad spots</dt>
-        <dd><span data-role="sponsor-available">&ndash;</span><small> available of <span data-role="sponsor-total">4</span></small></dd>
-      </div>
-    </dl>
-    <button class="subscription-action sponsor-pay-button" type="button" data-role="sponsor-pay" disabled>Pay with Stripe</button>
-    <p class="sponsor-dialog-status" data-role="sponsor-offer-status" aria-live="polite">Checking availability&hellip;</p>
-  </section>
-
-</dialog>
-</div>`;
+`;
 }

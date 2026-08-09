@@ -8,11 +8,11 @@ self.addEventListener("push", (event) => {
 
   const kind = payload.kind === "watch" ? "watch" : "reset";
   const title = payload.title ||
-    (kind === "watch" ? "⚠️ Possible Codex reset within 24h" : "✅ Codex reset confirmed");
+    (kind === "watch" ? "⚠️ Codex 可能在 24 小时内重置" : "✅ Codex 重置已确认");
   event.waitUntil(self.registration.showNotification(title, {
     body: payload.body || (kind === "watch"
-      ? "Prediction, not a confirmed reset."
-      : "A Codex usage-limit reset was confirmed."),
+      ? "这是预测，尚未确认重置。"
+      : "已确认 Codex 使用额度完成重置。"),
     tag: kind === "watch" ? "codex-reset-watch" : "codex-reset-confirmed",
     data: {
       kind,

@@ -4,18 +4,18 @@
 // spans the last ~90 days irregularly, the way real reset announcements do.
 
 const TWEET_TEXTS = [
-  "We've reset usage limits for all Plus and Pro users. Enjoy!",
-  "Usage limits have been reset across the board. Go build something.",
-  "Heads up: Codex usage limits just got reset for everyone. Have fun.",
-  "Limits are reset. Also shipped a few reliability fixes under the hood.",
-  "Resetting usage limits for all users right now. Back to full speed.",
-  "Good news: your Codex limits are reset. Thanks for bearing with us this week.",
-  "Usage limits reset across all tiers. Let us know how it feels.",
-  "We reset everyone's usage limits a bit early this cycle. You're welcome.",
-  "Limits reset! We also bumped capacity, so resets like this should get rarer.",
-  "Codex usage limits have been reset for all Plus and Pro accounts.",
-  "Rolling reset of usage limits is complete. Codex should feel roomy again.",
-  "Reset the limits for everyone tonight. Go ship something while it's fresh.",
+  "我们已经为所有 Plus 和 Pro 用户重置使用额度，尽情使用吧！",
+  "所有方案的使用额度都已重置，去创造点新东西吧。",
+  "提醒一下：所有人的 Codex 使用额度刚刚完成重置，祝大家玩得开心。",
+  "额度已经重置，同时还上线了几项可靠性修复。",
+  "正在为所有用户重置使用额度，很快就能恢复满速。",
+  "好消息：你的 Codex 额度已重置，感谢大家这周的耐心等待。",
+  "所有方案的使用额度均已重置，欢迎告诉我们实际体验。",
+  "这次提前为所有人重置了使用额度，不用客气。",
+  "额度已重置！我们也提升了容量，希望以后不必频繁重置。",
+  "所有 Plus 和 Pro 账户的 Codex 使用额度均已重置。",
+  "使用额度的滚动重置已经完成，Codex 又宽裕起来了。",
+  "今晚为所有人重置额度，趁新鲜去发布点东西吧。",
 ];
 
 // Days-ago offsets (irregular spacing, newest first), spread across ~90 days.
@@ -74,14 +74,14 @@ export function getDemoData() {
       level: "strong",
       tweet_id: "2080859954421047341",
       tweet_url: "https://x.com/thsottiaux/status/2080859954421047341",
-      text: "@xikhar There is still time",
+      text: "@xikhar 还有时间。",
       observed_at: observedAt.toISOString(),
       expires_at: new Date(observedAt.getTime() + 24 * 60 * 60 * 1000).toISOString(),
       window_hours: 24,
       reset_chance_24h: 68,
       context_tweet_id: "2080787300917932360",
       context_tweet_url: "https://x.com/i/status/2080787300917932360",
-      context_text: "No Codex or Claude resets today. The most disappointing last 2 days in AI.",
+      context_text: "今天没有 Codex 或 Claude 重置，这是人工智能领域最令人失望的两天。",
     },
     stats: buildDemoStats(events),
     reset_requests: {

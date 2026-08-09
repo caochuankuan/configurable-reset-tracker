@@ -4,24 +4,24 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>Content admin</title>
+  <title>内容管理</title>
   <link rel="stylesheet" href="/admin/styles.css">
   <script type="module" src="/admin/app.js"></script>
 </head>
 <body>
   <main class="admin-shell">
-    <header><div><p class="eyebrow">Worker + D1</p><h1>Content admin</h1></div><a href="/">View site →</a></header>
+    <header><div><p class="eyebrow">Worker + D1</p><h1>内容管理</h1></div><a href="/">查看网站 →</a></header>
     <section id="login" class="panel">
-      <h2>Connect</h2>
-      <p>Enter the <code>ADMIN_TOKEN</code> secret. It stays in this tab and is not stored.</p>
-      <form id="login-form"><label>Admin token<input id="token" type="password" autocomplete="current-password" required></label><button type="submit">Load content</button></form>
+      <h2>连接后台</h2>
+      <p>请输入 <code>ADMIN_TOKEN</code> 密钥。它只保留在当前标签页中，不会被存储。</p>
+      <form id="login-form"><label>管理员令牌<input id="token" type="password" autocomplete="current-password" required></label><button type="submit">加载内容</button></form>
       <p id="login-status" class="status" role="status" aria-live="polite"></p>
     </section>
     <section id="editor" class="panel" hidden>
-      <div class="editor-heading"><div><h2>JSON configuration</h2><p id="meta"></p></div><button id="reload" type="button" class="secondary">Reload</button></div>
-      <label for="content">Content JSON</label>
+      <div class="editor-heading"><div><h2>JSON 配置</h2><p id="meta"></p></div><button id="reload" type="button" class="secondary">重新加载</button></div>
+      <label for="content">内容 JSON</label>
       <textarea id="content" spellcheck="false" rows="28"></textarea>
-      <div class="editor-actions"><p id="status" role="status"></p><button id="save" type="button">Validate & save</button></div>
+      <div class="editor-actions"><p id="status" role="status"></p><button id="save" type="button">校验并保存</button></div>
     </section>
   </main>
 </body>

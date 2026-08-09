@@ -37,8 +37,9 @@
     const nextTheme = theme === DARK ? LIGHT : DARK;
     scope.querySelectorAll('[data-role="theme-toggle"]').forEach((button) => {
       button.setAttribute("aria-pressed", theme === DARK ? "true" : "false");
-      button.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
-      button.setAttribute("title", `Switch to ${nextTheme} mode`);
+      const nextThemeLabel = nextTheme === DARK ? "深色" : "浅色";
+      button.setAttribute("aria-label", `切换到${nextThemeLabel}模式`);
+      button.setAttribute("title", `切换到${nextThemeLabel}模式`);
     });
   }
 

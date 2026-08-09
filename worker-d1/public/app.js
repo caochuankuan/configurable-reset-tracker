@@ -4,7 +4,6 @@
 // string interpolation done in render.js.
 
 import { formatRelative, renderPage } from "./render.js";
-import { enhanceSponsors } from "./sponsors.js";
 import { getDemoData } from "./demo-data.js";
 
 const root = document.getElementById("app");
@@ -19,7 +18,7 @@ async function loadData() {
     const res = await fetch("/api/resets", { headers: { accept: "application/json" } });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const json = await res.json();
-    if (!json || !Array.isArray(json.events)) throw new Error("Malformed response");
+    if (!json || !Array.isArray(json.events)) throw new Error("响应格式不正确");
     return { ...json, isDemo: false };
   } catch (err) {
     console.warn("[codex-resets] live data unavailable, falling back to demo data:", err);
@@ -31,14 +30,14 @@ async function loadData() {
 // Local-time formatting helpers
 // ---------------------------------------------------------------------------
 const absoluteFmt = typeof Intl !== "undefined"
-  ? new Intl.DateTimeFormat("en", {
+  ? new Intl.DateTimeFormat("zh-CN", {
       dateStyle: "medium",
       timeStyle: "short",
     })
   : null;
 
 const shortDateFmt = typeof Intl !== "undefined"
-  ? new Intl.DateTimeFormat("en", { dateStyle: "medium" })
+  ? new Intl.DateTimeFormat("zh-CN", { dateStyle: "medium" })
   : null;
 
 function formatAbsolute(dateMs) {
@@ -89,11 +88,11 @@ function enhanceTimes(scope) {
 // Deadpan lines for empty days, picked deterministically per date so a cell
 // tells the same joke every time you hover it.
 const QUIET_DAY_LINES = [
-  "No reset. We persevered.",
-  "No reset. He was busy.",
-  "No reset. The feed was quiet.",
-  "No reset. We refreshed anyway.",
-  "No reset. Character-building day.",
+  "没有重置，我们坚持住了。",
+  "没有重置，他当时很忙。",
+  "没有重置，动态很安静。",
+  "没有重置，但我们还是刷新了。",
+  "没有重置，这是磨炼意志的一天。",
 ];
 
 function quietLine(dateStr) {
@@ -115,7 +114,7 @@ function enhanceGraph(scope) {
   function dateLabel(dateStr) {
     // dateStr is YYYY-MM-DD in UTC (the graph's day bucket).
     const d = new Date(`${dateStr}T00:00:00Z`);
-    return new Intl.DateTimeFormat("en", {
+    return new Intl.DateTimeFormat("zh-CN", {
       dateStyle: "medium",
       timeZone: "UTC",
     }).format(d);
@@ -125,8 +124,8 @@ function enhanceGraph(scope) {
     const count = Number(cell.getAttribute("data-count") || "0");
     const date = cell.getAttribute("data-date");
     const snippet = cell.getAttribute("data-snippet") || "";
-    const countLabel = count === 0 ? quietLine(date) : count > 1 ? `${count} resets in one day. Feast.` : "";
-    tooltip.innerHTML = `<strong>${dateLabel(date)}</strong> (UTC)${countLabel ? `<br>${countLabel}` : ""}${snippet ? `<br><span class="cg-tooltip-snippet">${snippet}${snippet.length >= 120 ? "…" : ""}</span>` : ""}`;
+    const countLabel = count === 0 ? quietLine(date) : count > 1 ? `一天内重置 ${count} 次，盛宴。` : "";
+    tooltip.innerHTML = `<strong>${dateLabel(date)}</strong>（UTC）${countLabel ? `<br>${countLabel}` : ""}${snippet ? `<br><span class="cg-tooltip-snippet">${snippet}${snippet.length >= 120 ? "…" : ""}</span>` : ""}`;
     tooltip.hidden = false;
 
     const cellRect = cell.getBoundingClientRect();
@@ -223,10 +222,10 @@ async function enhancePushControl(scope) {
   function reflectState() {
     const enabled = subscription !== null;
     toggle.setAttribute("aria-pressed", String(enabled));
-    label.textContent = enabled ? "browser on" : "browser";
+    label.textContent = enabled ? "浏览器已开启" : "浏览器";
     toggle.title = enabled
-      ? "Stop browser notifications for Codex resets"
-      : "Get browser notifications when Codex resets";
+      ? "停止接收 Codex 重置的浏览器通知"
+      : "Codex 重置时接收浏览器通知";
   }
 
   try {
@@ -234,7 +233,7 @@ async function enhancePushControl(scope) {
     subscription = registration ? await registration.pushManager.getSubscription() : null;
     reflectState();
   } catch {
-    showHint("Couldn't check your ping status just now.");
+    showHint("暂时无法检查浏览器通知状态。");
   }
 
   toggle.addEventListener("click", async () => {
@@ -253,13 +252,13 @@ async function enhancePushControl(scope) {
           // row self-heals when the next push comes back 410.
           console.warn("[codex-resets] unsubscribe cleanup failed:", error);
         }
-        showHint("Okay. You'll find out like everyone else.");
+        showHint("浏览器通知已关闭。");
         return;
       }
 
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        showHint("No ping for you: notifications are blocked here.");
+        showHint("通知已被浏览器拦截，请在浏览器设置中允许通知。");
         return;
       }
 
@@ -278,10 +277,10 @@ async function enhancePushControl(scope) {
       subscription = newSubscription;
       reflectState();
       trackEvent("Push notifications enabled");
-      showHint("Deal. The next reset pings you first.", 3000);
+      showHint("已开启，下次重置会第一时间通知你。", 3000);
     } catch (error) {
       console.warn("[codex-resets] notification subscription failed:", error);
-      showHint("That didn't take. Please try again.");
+      showHint("开启失败，请重试。");
     } finally {
       toggle.disabled = false;
     }
@@ -332,7 +331,7 @@ async function enhanceEmailControl(scope) {
     input.disabled = true;
     submit.disabled = true;
     const originalLabel = submit.textContent;
-    submit.textContent = "sending…";
+    submit.textContent = "发送中…";
     showHint("");
     try {
       const response = await fetch("/api/email/subscribe", {
@@ -345,14 +344,14 @@ async function enhanceEmailControl(scope) {
       input.value = "";
       showSettledState(
         "sent",
-        "email sent",
-        "Check your inbox — the confirmation link is good for 24 hours.",
+        "邮件已发送",
+        "请检查收件箱，确认链接在 24 小时内有效。",
       );
     } catch (error) {
       console.warn("[codex-resets] email subscription failed:", error);
       showHint(error instanceof Error && error.message === "Enter a valid email address"
-        ? error.message
-        : "That didn't send. Please try again.");
+        ? "请输入有效的邮箱地址。"
+        : "发送失败，请重试。");
     } finally {
       input.disabled = false;
       submit.disabled = false;
@@ -366,15 +365,15 @@ async function enhanceEmailControl(scope) {
     if (state === "confirmed") {
       showSettledState(
         "confirmed",
-        "email on",
-        "You're on the list. The next confirmed reset lands here.",
+        "邮件已开启",
+        "订阅成功，下次确认重置后会发送到这个邮箱。",
       );
     } else if (state === "invalid") {
       setOpen(true);
-      showHint("That confirmation link is invalid or expired. Request a fresh one.", "error");
+      showHint("确认链接无效或已过期，请重新申请。", "error");
     } else if (state === "error") {
       setOpen(true);
-      showHint("We couldn't confirm that address just now. Please open the link again.", "error");
+      showHint("暂时无法确认这个邮箱地址，请重新打开链接。", "error");
     }
     url.searchParams.delete("email");
     history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
@@ -385,7 +384,7 @@ async function enhanceEmailControl(scope) {
 // Collective reset pleas: rapid taps, live count, and mobile haptics
 // ---------------------------------------------------------------------------
 const resetRequestFmt = typeof Intl !== "undefined"
-  ? new Intl.NumberFormat("en")
+  ? new Intl.NumberFormat("zh-CN")
   : null;
 
 let resetPleaHapticLabel = null;
@@ -478,7 +477,7 @@ function enhanceResetPlea(scope) {
 
     count.setAttribute(
       "aria-label",
-      value === null ? "Reset request count unavailable" : `${value} reset requests since last reset`,
+      value === null ? "暂时无法获取重置请求数" : `上次重置后已有 ${value} 次请求`,
     );
   }
 
@@ -534,7 +533,7 @@ function enhanceResetPlea(scope) {
   function launchBurst() {
     if (reducedMotion?.matches) return;
     const burst = document.createElement("span");
-    const messages = ["+1", "🙏", "pls", "🔄", "avatar", "avatar"];
+    const messages = ["+1", "🙏", "求", "🔄", "avatar", "avatar"];
     const message = messages[Math.floor(Math.random() * messages.length)];
     const isAvatar = message === "avatar";
     burst.className = "reset-plea-burst";
@@ -762,7 +761,6 @@ async function boot() {
       enhanceGraph(root);
       enhanceResetPlea(root);
       enhanceTelegramLink(root);
-      void enhanceSponsors(root);
       await enhanceEmailControl(root);
       await enhancePushControl(root);
     } catch {
@@ -780,7 +778,6 @@ async function boot() {
     enhanceGraph(root);
     enhanceResetPlea(root);
     enhanceTelegramLink(root);
-    void enhanceSponsors(root);
     await enhanceEmailControl(root);
     await enhancePushControl(root);
   } catch {

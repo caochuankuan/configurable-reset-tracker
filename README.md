@@ -1,11 +1,13 @@
-# Codex Resets — framework-free replica
+# Codex 重置追踪 — 无框架复刻版
 
 对 `codex-resets.com` 当前页面结构、内容模型和视觉样式的复刻，包含两种无框架实现：
 
 - `static-json/`：纯 HTML + CSS + JavaScript + JSON，适合任意静态托管。
 - `worker-d1/`：Cloudflare Worker + D1，带 `/admin/` 配置后台。
 
-两套代码互相独立，不需要构建前端资源。当前配置包含 41 条 reset 事件、26 周热力图、Reset Watch、统计卡片和完整时间线。
+两套代码互相独立，不需要构建前端资源。页面文案和 41 条事件内容均为中文，包含 26 周热力图、重置观察、统计卡片和完整时间线；原页面的两个广告位已移除。
+
+完整中文配置示例位于 [`examples/content.zh-CN.json`](./examples/content.zh-CN.json)，两套代码默认使用同一份中文内容。
 
 ## 1. 静态 JSON 版本
 
