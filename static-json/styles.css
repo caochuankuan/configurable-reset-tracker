@@ -1721,6 +1721,8 @@ a:focus-visible {
 }
 
 .cg-scroll {
+  min-width: 0;
+  flex: 1 1 auto;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px;

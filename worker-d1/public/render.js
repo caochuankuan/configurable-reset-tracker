@@ -411,6 +411,16 @@ export function renderPage(data) {
     ui = {},
     isDemo = false,
   } = data || {};
+  const sortedPosts = [...posts].sort((a, b) => Date.parse(b.published_at) - Date.parse(a.published_at));
+  const times = sortedPosts.map((post) => Date.parse(post.published_at)).filter(Number.isFinite).sort((a, b) => a - b);
+  const intervals = times.slice(1).map((time, index) => (time - times[index]) / MS_DAY);
+  const computedStats = times.length ? {
+    ...stats,
+    total: sortedPosts.length,
+    last_published_at: new Date(times[times.length - 1]).toISOString(),
+    days_since_last: Math.max(0, Math.floor((Date.now() - times[times.length - 1]) / MS_DAY)),
+    avg_interval_days: intervals.length ? intervals.reduce((sum, value) => sum + value, 0) / intervals.length : 0,
+  } : { ...stats, total: 0 };
 
   return `
 <div class="page">
@@ -440,9 +450,9 @@ export function renderPage(data) {
   </header>
 
   <main>
-    ${renderHero(stats, posts, featured, reactions, ui, site, isDemo)}
-    ${renderContributionGraph(posts, ui)}
-    ${renderPostArchive(posts, ui)}
+    ${renderHero(computedStats, sortedPosts, featured, reactions, ui, site, isDemo)}
+    ${renderContributionGraph(sortedPosts, ui)}
+    ${renderPostArchive(sortedPosts, ui)}
   </main>
   ${renderPostDialog(ui)}
 </div>

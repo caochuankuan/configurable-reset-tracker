@@ -41,7 +41,7 @@ function renderEditor() {
     <section class="editor-section"><div class="section-heading"><h3>文章列表</h3><span>${content.posts.length} 篇</span></div><div id="posts-list">${content.posts.map((post, index) => `<article class="post-editor" data-post-index="${index}"><div class="post-heading"><h4>文章 ${index + 1}</h4><button type="button" class="remove-post secondary">删除</button></div>${field("文章 ID", post.id, "id")}${field("标题", post.title, "title")}${field("摘要", post.summary, "summary")}<div class="form-grid">${field("发布时间", post.published_at, "published_at", "datetime-local")}${field("正文（每行一段）", (post.content || []).join("\\n"), "content", "textarea")}</div></article>`).join("")}</div><button type="button" id="add-post" class="secondary">＋新增文章</button></section>`;
   visualEditor.querySelectorAll('input, textarea').forEach((input) => input.addEventListener("input", syncContent));
   visualEditor.querySelectorAll(".remove-post").forEach((button) => button.addEventListener("click", () => { button.closest(".post-editor").remove(); syncContent(); }));
-  visualEditor.querySelector("#add-post").addEventListener("click", () => { content.posts.push({ id: `new-post-${Date.now()}`, title: "新文章", summary: "文章摘要", content: ["正文内容"], published_at: new Date().toISOString() }); renderEditor(); syncContent(); });
+  visualEditor.querySelector("#add-post").addEventListener("click", () => { content.posts.unshift({ id: `new-post-${Date.now()}`, title: "新文章", summary: "文章摘要", content: ["正文内容"], published_at: new Date().toISOString() }); renderEditor(); syncContent(); });
   syncContent();
 }
 

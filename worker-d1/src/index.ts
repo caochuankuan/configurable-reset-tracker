@@ -58,6 +58,22 @@ function validDate(value: unknown): value is string {
   return typeof value === "string" && !Number.isNaN(Date.parse(value));
 }
 
+function sortPosts(posts: BlogPost[]): BlogPost[] {
+  return [...posts].sort((a, b) => Date.parse(b.published_at) - Date.parse(a.published_at));
+}
+
+function calculateStats(posts: BlogPost[]): BlogData["stats"] {
+  const times = posts.map((post) => Date.parse(post.published_at)).filter(Number.isFinite).sort((a, b) => a - b);
+  const last = times[times.length - 1] ?? Date.now();
+  const intervals = times.slice(1).map((time, index) => (time - times[index]) / 86_400_000);
+  return {
+    total: posts.length,
+    last_published_at: new Date(last).toISOString(),
+    days_since_last: Math.max(0, Math.floor((Date.now() - last) / 86_400_000)),
+    avg_interval_days: intervals.length ? intervals.reduce((sum, value) => sum + value, 0) / intervals.length : 0,
+  };
+}
+
 function validateContent(value: unknown): value is BlogData {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<BlogData>;
@@ -166,9 +182,10 @@ async function resolvedContent(request: Request, env: Env): Promise<{ content: B
 async function handlePublicContent(request: Request, env: Env): Promise<Response> {
   const { content, row } = await resolvedContent(request, env);
   const snapshot = await readResetRequests(env);
-  return json({ ...content, reactions: snapshot ?? content.reactions ?? null }, {
+  const normalized = { ...content, posts: sortPosts(content.posts), stats: calculateStats(content.posts) };
+  return json({ ...normalized, reactions: snapshot ?? content.reactions ?? null }, {
     headers: {
-      "cache-control": "public, max-age=60, stale-while-revalidate=300",
+      "cache-control": "public, max-age=0, must-revalidate",
       etag: `W/\"content-${row?.version ?? 0}\"`,
     },
   });
@@ -207,11 +224,17 @@ async function handleAdminWrite(request: Request, env: Env): Promise<Response> {
     return json({ error: "需要有效的博客 JSON 和 expectedVersion。" }, { status: 422 });
   }
 
+  const normalizedContent: BlogData = {
+    ...candidate.content,
+    posts: sortPosts(candidate.content.posts),
+    stats: calculateStats(candidate.content.posts),
+  };
+
   const result = await env.DB.prepare(
     `UPDATE site_content
      SET content_json = ?, version = version + 1, updated_at = CURRENT_TIMESTAMP
      WHERE id = 1 AND version = ?`,
-  ).bind(JSON.stringify(candidate.content), candidate.expectedVersion).run();
+  ).bind(JSON.stringify(normalizedContent), candidate.expectedVersion).run();
   if (result.meta.changes !== 1) {
     return json({ error: "内容在加载后已被修改，请重新加载后再试。" }, { status: 409 });
   }
